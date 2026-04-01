@@ -4,13 +4,12 @@
   <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
     <div>
       <h1 class="h3 fw-bold mb-2">Dashboard</h1>
-      <p class="text-muted mb-0">Staff overview for CortexConnect.</p>
+      <p class="text-muted mb-0">Operations overview for CortexConnect.</p>
     </div>
     <div class="d-flex flex-wrap gap-2">
       <a href="/check-appointments" class="btn btn-outline-primary btn-sm">Appointments</a>
       <% if (profile && profile.role === "admin") { %>
         <a href="/bed-admissions" class="btn btn-outline-primary btn-sm">Bed Admissions</a>
-        <a href="/staff-records" class="btn btn-outline-primary btn-sm">Staff Records</a>
       <% } %>
     </div>
   </div>
@@ -19,8 +18,8 @@
     <div class="col-md-3">
       <div class="card h-100">
         <div class="card-body">
-          <div class="text-muted small">Users</div>
-          <div class="h3 mb-0"><%= userCount %></div>
+          <div class="text-muted small">Patients</div>
+          <div class="h3 mb-0"><%= patientCount %></div>
         </div>
       </div>
     </div>
@@ -56,7 +55,7 @@
         <div class="card-body p-4">
           <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
             <h2 class="h5 mb-0">Bed Snapshot</h2>
-            <span class="badge text-bg-light border">3-day projection</span>
+            <span class="badge text-bg-light border">Latest snapshot</span>
           </div>
 
           <% if (bedSummary) { %>
@@ -100,12 +99,6 @@
                   <div class="h4 mb-0"><%= bedSummary.freeBeds %></div>
                 </div>
               </div>
-              <div class="col-6 col-xl-3">
-                <div class="border rounded-3 p-3 h-100">
-                  <div class="text-muted small">Projected</div>
-                  <div class="h4 mb-0"><%= bedProjection ? bedProjection.projected : bedSummary.occupiedBeds %></div>
-                </div>
-              </div>
             </div>
 
             <hr class="my-4">
@@ -141,185 +134,186 @@
       <div class="card h-100">
         <div class="card-body p-4">
           <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-            <h2 class="h5 mb-0">Staff Coverage</h2>
-            <span class="badge text-bg-light border">Live roster</span>
+            <h2 class="h5 mb-0">Doctor Workload</h2>
+            <span class="badge text-bg-light border">Live queue</span>
           </div>
 
-          <% if (staffSummary) { %>
-            <div class="alert alert-<%= staffSummary.coveragePct < 85 ? 'danger' : staffSummary.coveragePct < 100 ? 'warning' : 'success' %>">
-              <% if (staffSummary.coveragePct < 85) { %>
-                Staff coverage is below target. Consider adding or shifting staff soon.
-              <% } else if (staffSummary.coveragePct < 100) { %>
-                Staff coverage is close to the required level.
-              <% } else { %>
-                Staff coverage is within target.
-              <% } %>
-            </div>
-            <div class="mb-3">
-              <div class="d-flex justify-content-between small text-muted mb-1">
-                <span>Coverage</span>
-                <span><%= staffSummary.coveragePct %>%</span>
-              </div>
-              <div class="progress" style="height: 12px;">
-                <div
-                  class="progress-bar <%= staffSummary.coveragePct < 85 ? 'bg-danger' : staffSummary.coveragePct < 100 ? 'bg-warning' : 'bg-success' %>"
-                  style="width: <%= Math.min(staffSummary.coveragePct, 100) %>%"
-                ></div>
+          <div class="row g-3">
+            <div class="col-6 col-xl-4">
+              <div class="border rounded-3 p-3 h-100">
+                <div class="text-muted small">Assigned</div>
+                <div class="h4 mb-0"><%= doctorAppointmentLoad || 0 %></div>
               </div>
             </div>
-            <div class="row g-3">
-              <div class="col-6 col-xl-3">
-                <div class="border rounded-3 p-3 h-100">
-                  <div class="text-muted small">Total</div>
-                  <div class="h4 mb-0"><%= staffSummary.totalStaff %></div>
-                </div>
-              </div>
-              <div class="col-6 col-xl-3">
-                <div class="border rounded-3 p-3 h-100">
-                  <div class="text-muted small">Active</div>
-                  <div class="h4 mb-0"><%= staffSummary.activeStaff %></div>
-                </div>
-              </div>
-              <div class="col-6 col-xl-3">
-                <div class="border rounded-3 p-3 h-100">
-                  <div class="text-muted small">Required</div>
-                  <div class="h4 mb-0"><%= staffSummary.requiredStaff %></div>
-                </div>
-              </div>
-              <div class="col-6 col-xl-3">
-                <div class="border rounded-3 p-3 h-100">
-                  <div class="text-muted small">Current</div>
-                  <div class="h4 mb-0"><%= staffSummary.activeStaff %></div>
-                </div>
+            <div class="col-6 col-xl-4">
+              <div class="border rounded-3 p-3 h-100">
+                <div class="text-muted small">Avg / Doctor</div>
+                <div class="h4 mb-0"><%= doctorWorkloadAverage || 0 %></div>
               </div>
             </div>
-          <% } else { %>
-            <div class="alert alert-info mb-0">No staff records saved yet.</div>
-          <% } %>
+            <div class="col-12 col-xl-4">
+              <div class="border rounded-3 p-3 h-100">
+                <div class="text-muted small">Active Doctors</div>
+                <div class="h4 mb-0"><%= activeDoctorCount || 0 %>/<%= doctorCount || 0 %></div>
+              </div>
+            </div>
+          </div>
+          <p class="text-muted small mb-0 mt-3">This reflects current pending and approved appointments across the active doctor roster.</p>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="row g-4 mb-4">
-    <div class="col-lg-6">
-      <div class="card h-100">
-        <div class="card-body p-4">
-          <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
-            <h2 class="h5 mb-0">Recent Bed Records</h2>
-            <a href="/bed-admissions" class="btn btn-outline-primary btn-sm">Open</a>
+<div class="card border-0 shadow-sm mb-4" id="resource-prediction" data-resource-forecast-panel>
+    <div class="card-body p-4 p-lg-5">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div>
+          <div class="text-uppercase text-muted small mb-2">OpenAI Forecast</div>
+          <h2 class="h4 fw-bold mb-2">Resource Prediction</h2>
+          <p class="text-muted mb-0">
+            Send the live hospital JSON to OpenAI, set a threshold, and generate a day-wise forecast for up to 7 days.
+          </p>
+        </div>
+        <div class="text-end">
+          <div class="small text-muted">Current data source</div>
+          <div class="fw-semibold">MongoDB snapshot</div>
+        </div>
+      </div>
+
+      <% if (typeof openAiConfigured !== "undefined" && !openAiConfigured) { %>
+        <div class="alert alert-warning">
+          OpenAI is not configured yet. Set <code>OPENAI_API_KEY</code> in <code>.env</code> to enable live predictions from this panel.
+        </div>
+      <% } %>
+
+      <div class="row g-3 mb-4">
+        <div class="col-md-3">
+          <div class="border rounded-3 p-3 h-100">
+            <div class="text-muted small">Bed occupancy</div>
+            <div class="h4 mb-0"><%= bedSummary ? bedSummary.occupancyPct : 0 %>%</div>
           </div>
-          <div class="table-responsive">
-            <table class="table table-sm align-middle mb-0">
-              <thead class="table-light">
-                <tr>
-                  <th>Patient</th>
-                  <th>Category</th>
-                  <th>Snapshot</th>
-                  <th>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% if (!bedRecords || bedRecords.length === 0) { %>
-                  <tr><td colspan="4" class="text-center py-4 text-muted">No bed records yet.</td></tr>
-                <% } else { %>
-                  <% bedRecords.forEach((record) => { %>
-                    <tr>
-                      <td><%= record.patient_name %></td>
-                      <td><%= record.bed_category %></td>
-                      <td><%= record.occupied_beds %>/<%= record.total_beds %></td>
-                      <td><%= record.admission_date %></td>
-                    </tr>
-                  <% }) %>
-                <% } %>
-              </tbody>
-            </table>
+        </div>
+        <div class="col-md-3">
+          <div class="border rounded-3 p-3 h-100">
+            <div class="text-muted small">Staff coverage</div>
+            <div class="h4 mb-0"><%= staffSummary ? staffSummary.coveragePct : 0 %>%</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="border rounded-3 p-3 h-100">
+            <div class="text-muted small">Pending appointments</div>
+            <div class="h4 mb-0"><%= pendingCount || 0 %></div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="border rounded-3 p-3 h-100">
+            <div class="text-muted small">Active doctors</div>
+            <div class="h4 mb-0"><%= activeDoctorCount || 0 %>/<%= doctorCount || 0 %></div>
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="col-lg-6">
-      <div class="card h-100">
-        <div class="card-body p-4">
-          <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
-            <h2 class="h5 mb-0">Current Staff Roster</h2>
-            <a href="/staff-records" class="btn btn-outline-primary btn-sm">Open</a>
-          </div>
-          <div class="table-responsive">
-            <table class="table table-sm align-middle mb-0">
-              <thead class="table-light">
-                <tr>
-                  <th>Staff</th>
-                  <th>Role</th>
-                  <th>Department</th>
-                  <th>Status</th>
-                  <th>Updated</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% if (!staffRecords || staffRecords.length === 0) { %>
-                  <tr><td colspan="5" class="text-center py-4 text-muted">No staff roster entries yet.</td></tr>
-                <% } else { %>
-                  <% staffRecords.forEach((record) => { %>
-                    <tr>
-                      <td><%= record.staff_name %></td>
-                      <td><%= record.role_label || record.staff_role %></td>
-                      <td><%= record.department %></td>
-                      <td><span class="badge text-bg-<%= record.active ? 'success' : 'secondary' %> text-uppercase"><%= record.status_label || (record.active ? 'Active' : 'Inactive') %></span></td>
-                      <td><%= record.latestDate ? new Date(record.latestDate).toLocaleString() : "-" %></td>
-                    </tr>
-                  <% }) %>
-                <% } %>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-body">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="h5 mb-0">Latest Appointments</h2>
-        <a href="/check-appointments" class="btn btn-outline-primary btn-sm">Open Appointment Queue</a>
-      </div>
-      <div class="table-responsive">
-        <table class="table table-sm align-middle mb-0">
-          <thead class="table-light">
-            <tr>
-              <th>Patient</th>
-              <th>Doctor</th>
-              <th>Date</th>
-              <th>Time</th>
-              <th>Status</th>
-              <th>Receipt</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% if (!records || records.length === 0) { %>
-              <tr>
-                <td colspan="6" class="text-center py-4 text-muted">No appointments yet.</td>
-              </tr>
-            <% } else { %>
-              <% records.forEach((record) => { %>
-                <tr>
-                  <td>
-                    <div class="fw-semibold"><%= record.full_name %></div>
-                    <div class="text-muted small"><%= record.email %></div>
-                  </td>
-                  <td><%= record.doctor_name %></td>
-                  <td><%= record.appointment_date %></td>
-                  <td><%= record.time_slot %></td>
-                  <td><span class="badge text-bg-<%= record.status === 'Accepted' ? 'success' : record.status === 'Rejected' ? 'danger' : 'warning' %> text-uppercase"><%= record.status === 'Accepted' ? 'Approved' : record.status %></span></td>
-                  <td><a href="/appointments/<%= record._id %>/receipt.pdf" class="btn btn-sm btn-outline-secondary">Download</a></td>
-                </tr>
-              <% }) %>
+      <form class="row g-3 align-items-end" data-forecast-form data-endpoint="/dashboard/resource-forecast">
+        <div class="col-md-4 col-lg-3">
+          <label class="form-label">Forecast horizon</label>
+          <select class="form-select" name="horizonDays" data-forecast-days>
+            <% for (let dayCount = 1; dayCount <= 7; dayCount += 1) { %>
+              <option value="<%= dayCount %>" <%= dayCount === 7 ? "selected" : "" %>><%= dayCount %> day<%= dayCount === 1 ? "" : "s" %></option>
             <% } %>
-          </tbody>
-        </table>
+          </select>
+          <div class="form-text">OpenAI will forecast up to 7 days ahead.</div>
+        </div>
+        <div class="col-md-4 col-lg-3">
+          <label class="form-label">Load threshold %</label>
+          <input type="number" min="1" max="100" class="form-control" name="thresholdPct" value="80" data-forecast-threshold required>
+          <div class="form-text">Days at or above this load will be flagged.</div>
+        </div>
+        <div class="col-md-4 col-lg-6 d-flex flex-wrap gap-2">
+          <button type="submit" class="btn btn-primary" data-forecast-submit>Generate forecast</button>
+          <button type="button" class="btn btn-outline-secondary" data-forecast-reset>Reset</button>
+        </div>
+      </form>
+
+      <div class="alert alert-info mt-4 mb-0" data-forecast-status>
+        Set the horizon and threshold, then generate a live OpenAI forecast.
+      </div>
+
+      <div class="mt-4" data-forecast-empty>
+        <div class="border rounded-3 p-4 bg-light">
+          <div class="fw-semibold mb-1">No forecast yet</div>
+          <div class="text-muted mb-0">Run the prediction to render charts and the day-wise load table here.</div>
+        </div>
+      </div>
+
+      <div class="row g-4 mt-1" data-forecast-results hidden>
+        <div class="col-lg-8">
+          <div class="card h-100">
+            <div class="card-body p-4">
+              <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+                <h3 class="h6 mb-0">Overall load vs threshold</h3>
+                <span class="badge text-bg-light border" data-forecast-ratio>0%</span>
+              </div>
+              <div style="min-height: 320px;">
+                <canvas data-forecast-overall-chart></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-4">
+          <div class="card h-100">
+            <div class="card-body p-4">
+              <h3 class="h6 mb-3">Forecast summary</h3>
+              <div class="list-group list-group-flush" data-forecast-summary></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12">
+          <div class="card">
+            <div class="card-body p-4">
+              <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+                <h3 class="h6 mb-0">Load breakdown</h3>
+                <span class="badge text-bg-light border">Beds, staff, and appointment pressure</span>
+              </div>
+              <div style="min-height: 320px;">
+                <canvas data-forecast-breakdown-chart></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12">
+          <div class="card">
+            <div class="card-body p-4">
+              <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+                <h3 class="h6 mb-0">Day-wise forecast</h3>
+                <span class="text-muted small" data-forecast-generated></span>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Date</th>
+                      <th>Overall</th>
+                      <th>Beds</th>
+                      <th>Staff</th>
+                      <th>Appointments</th>
+                      <th>Threshold</th>
+                      <th>Confidence</th>
+                      <th>Note</th>
+                    </tr>
+                  </thead>
+                  <tbody data-forecast-table></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="/js/adminDashboard.js"></script>

@@ -17,6 +17,7 @@ const BedRequest = require("./models/bedRequest");
 const initializePassport = require("./config/passport");
 const { seedBedAdmissions } = require("./init/bed_admissions_index");
 const { buildAppointmentReceiptPdf, buildAppointmentReceiptFilename } = require("./utils/pdfReceipt");
+const { generateResourceForecast, resourceForecastRequestSchema } = require("./utils/resourceForecast");
 const {
   objectIdPattern,
   signupSchema,
@@ -465,36 +466,6 @@ const buildAppointmentReceiptDocument = (appointment, { issuedAt = new Date() } 
   };
 };
 
-const computeProjection = (records, fieldName, horizonDays = 3) => {
-  if (!records || records.length < 2) {
-    return null;
-  }
-
-  const sorted = [...records].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-  const deltas = [];
-
-  for (let index = 1; index < sorted.length; index += 1) {
-    const current = Number(sorted[index]?.[fieldName] || 0);
-    const previous = Number(sorted[index - 1]?.[fieldName] || 0);
-    deltas.push(current - previous);
-  }
-
-  if (!deltas.length) {
-    return null;
-  }
-
-  const averageDelta = deltas.reduce((sum, value) => sum + value, 0) / deltas.length;
-  const latestValue = Number(sorted[sorted.length - 1]?.[fieldName] || 0);
-  const projected = Math.max(0, Math.round(latestValue + averageDelta * horizonDays));
-
-  return {
-    latestValue,
-    averageDelta: Math.round(averageDelta * 100) / 100,
-    projected,
-    horizonDays
-  };
-};
-
 const buildBedSummary = (records) => {
   if (!records || !records.length) {
     return null;
@@ -844,6 +815,24 @@ const findDoctorByUserId = async (userId) => {
   }
 
   return Doctor.findOne({ user_id: userId }).lean();
+};
+
+const canReviewAppointment = async (user, appointment) => {
+  if (!user || user.role !== "doctor") {
+    return { allowed: true };
+  }
+
+  const doctorProfile = await findDoctorByUserId(user._id);
+  if (!doctorProfile) {
+    return { allowed: false, message: "Doctor profile not found." };
+  }
+
+  const appointmentDoctorId = String(appointment?.doctor_id?._id || appointment?.doctor_id || "");
+  if (appointmentDoctorId !== String(doctorProfile._id)) {
+    return { allowed: false, message: "You can only review appointments assigned to you." };
+  }
+
+  return { allowed: true, doctorProfile };
 };
 
 const buildBedAdmissionFormData = ({ selectedPatient, latestAdmission, patientPhone = "" }) => ({
@@ -1695,26 +1684,52 @@ app.get("/check-appointments", ensureRole("admin", "doctor"), async (req, res, n
         .populate("user_id doctor_id")
         .lean()
       : doctorProfile
-        ? await AppointmentDetail.find({ doctor_id: doctorProfile._id, status: "Accepted" })
+        ? await AppointmentDetail.find({ doctor_id: doctorProfile._id })
           .sort({ createdAt: -1 })
           .populate("user_id doctor_id")
           .lean()
         : [];
+    const reviewSummary = doctorProfile
+      ? records.reduce((summary, record) => {
+        const status = String(record.status || "").trim().toLowerCase();
+        summary.total += 1;
+        if (status === "pending") summary.pending += 1;
+        if (status === "accepted") summary.accepted += 1;
+        if (status === "rejected") summary.rejected += 1;
+        return summary;
+      }, { total: 0, pending: 0, accepted: 0, rejected: 0 })
+      : null;
 
     res.render("appointment/status", {
-      title: isAdmin ? "Appointment Queue" : "Approved Patients",
+      title: isAdmin ? "Appointment Queue" : "Doctor Review Queue",
       records,
       adminMode: isAdmin,
       viewerMode: isAdmin ? "admin" : "doctor",
-      doctorProfile
+      doctorProfile,
+      reviewSummary
     });
   } catch (err) {
     next(err);
   }
 });
 
-app.post("/check-appointments/:id/accept", ensureRole("admin"), async (req, res, next) => {
+app.post("/check-appointments/:id/accept", ensureRole("admin", "doctor"), async (req, res, next) => {
   try {
+    const appointment = await AppointmentDetail.findById(req.params.id).populate("doctor_id").lean();
+
+    if (!appointment) {
+      return redirectWithFlash(req, res, "/check-appointments", "warning", "Appointment not found.");
+    }
+
+    if (String(appointment.status || "").trim() !== "Pending") {
+      return redirectWithFlash(req, res, "/check-appointments", "warning", "That appointment has already been reviewed.");
+    }
+
+    const reviewAccess = await canReviewAppointment(req.user, appointment);
+    if (!reviewAccess.allowed) {
+      return redirectWithFlash(req, res, "/check-appointments", "warning", reviewAccess.message);
+    }
+
     const updatedAppointment = await AppointmentDetail.findByIdAndUpdate(
       req.params.id,
       {
@@ -1730,10 +1745,6 @@ app.post("/check-appointments/:id/accept", ensureRole("admin"), async (req, res,
       .populate("user_id doctor_id approved_by")
       .lean();
 
-    if (!updatedAppointment) {
-      return redirectWithFlash(req, res, "/check-appointments", "warning", "Appointment not found.");
-    }
-
     await sendAppointmentDecisionNotifications(updatedAppointment, "approved");
 
     flashSuccess(req, "Appointment approved.");
@@ -1743,8 +1754,23 @@ app.post("/check-appointments/:id/accept", ensureRole("admin"), async (req, res,
   }
 });
 
-app.post("/check-appointments/:id/reject", ensureRole("admin"), async (req, res, next) => {
+app.post("/check-appointments/:id/reject", ensureRole("admin", "doctor"), async (req, res, next) => {
   try {
+    const appointment = await AppointmentDetail.findById(req.params.id).populate("doctor_id").lean();
+
+    if (!appointment) {
+      return redirectWithFlash(req, res, "/check-appointments", "warning", "Appointment not found.");
+    }
+
+    if (String(appointment.status || "").trim() !== "Pending") {
+      return redirectWithFlash(req, res, "/check-appointments", "warning", "That appointment has already been reviewed.");
+    }
+
+    const reviewAccess = await canReviewAppointment(req.user, appointment);
+    if (!reviewAccess.allowed) {
+      return redirectWithFlash(req, res, "/check-appointments", "warning", reviewAccess.message);
+    }
+
     const updatedAppointment = await AppointmentDetail.findByIdAndUpdate(
       req.params.id,
       {
@@ -1759,10 +1785,6 @@ app.post("/check-appointments/:id/reject", ensureRole("admin"), async (req, res,
     )
       .populate("user_id doctor_id approved_by")
       .lean();
-
-    if (!updatedAppointment) {
-      return redirectWithFlash(req, res, "/check-appointments", "warning", "Appointment not found.");
-    }
 
     await sendAppointmentDecisionNotifications(updatedAppointment, "rejected");
 
@@ -2134,7 +2156,6 @@ app.post("/bed-admissions", ensureRole("admin"), async (req, res, next) => {
       .populate("patient_user_id recorded_by")
       .lean();
     const bedSummary = buildBedSummary(recentAdmissions);
-    const bedProjection = computeProjection(recentAdmissions, "occupied_beds", 3);
 
     if (validation.error) {
       return res.status(400).render("main/bedAdmissions", {
@@ -2144,7 +2165,6 @@ app.post("/bed-admissions", ensureRole("admin"), async (req, res, next) => {
         formData: rawSubmission,
         recentAdmissions,
         bedSummary,
-        bedProjection,
         bedAlert: "Please correct the highlighted bed admission details.",
         bedAlertClass: "danger",
         message: getValidationMessage(validation.error, "Please check the bed admission details.")
@@ -2159,7 +2179,6 @@ app.post("/bed-admissions", ensureRole("admin"), async (req, res, next) => {
         formData: rawSubmission,
         recentAdmissions,
         bedSummary,
-        bedProjection,
         bedAlert: "Please choose a valid patient account.",
         bedAlertClass: "danger",
         message: "Please choose a valid patient account."
@@ -2201,7 +2220,6 @@ app.post("/bed-admissions", ensureRole("admin"), async (req, res, next) => {
         formData: rawSubmission,
         recentAdmissions,
         bedSummary,
-        bedProjection,
         bedAlert: "Please correct the highlighted bed admission details.",
         bedAlertClass: "danger",
         message: getMongooseErrorMessage(err, "Please check the bed admission details.")
@@ -2378,23 +2396,26 @@ app.get("/dashboard", ensureRole("admin", "doctor"), async (req, res, next) => {
   try {
     if (req.user.role === "doctor") {
       const doctorProfile = await findDoctorByUserId(req.user._id);
-      const approvedAppointments = doctorProfile
-        ? await AppointmentDetail.find({ doctor_id: doctorProfile._id, status: "Accepted" })
+      const assignedAppointments = doctorProfile
+        ? await AppointmentDetail.find({ doctor_id: doctorProfile._id })
           .sort({ createdAt: -1 })
-          .limit(8)
           .populate("user_id doctor_id")
           .lean()
         : [];
-      const [appointmentNotifications, pendingAppointmentCount] = doctorProfile
-        ? await Promise.all([
-          AppointmentNotification.find({ recipient_role: "doctor", recipient_user_id: req.user._id })
-            .sort({ createdAt: -1 })
-            .limit(6)
-            .lean(),
-          AppointmentDetail.countDocuments({ doctor_id: doctorProfile._id, status: "Pending" })
-        ])
-        : [[], 0];
-      const pendingBedRequestsCount = await BedRequest.countDocuments({ requested_by: req.user._id, status: "pending" });
+      const appointmentNotifications = doctorProfile
+        ? await AppointmentNotification.find({ recipient_role: "doctor", recipient_user_id: req.user._id })
+          .sort({ createdAt: -1 })
+          .limit(6)
+          .lean()
+        : [];
+      const pendingAppointmentCount = assignedAppointments.filter((record) => String(record.status || "").trim() === "Pending").length;
+      const acceptedCount = assignedAppointments.filter((record) => String(record.status || "").trim() === "Accepted").length;
+      const rejectedCount = assignedAppointments.filter((record) => String(record.status || "").trim() === "Rejected").length;
+      const assignedCount = assignedAppointments.length;
+      const availabilityDaysCount = doctorProfile ? (doctorProfile.availability_days || []).length : 0;
+      const workloadPerDay = availabilityDaysCount > 0
+        ? Math.ceil(assignedCount / availabilityDaysCount)
+        : assignedCount;
       const weeklySchedule = buildWeeklyDoctorSchedule(doctorProfile);
 
       return res.render("main/doctorDashboard", {
@@ -2406,41 +2427,48 @@ app.get("/dashboard", ensureRole("admin", "doctor"), async (req, res, next) => {
           roleLabel: roleLabels[req.user.role] || "Doctor"
         },
         doctorProfile,
-        acceptedAppointments: approvedAppointments,
-        acceptedCount: approvedAppointments.length,
+        assignedAppointments,
+        assignedCount,
+        acceptedCount,
         pendingAppointmentCount,
+        rejectedCount,
+        availabilityDaysCount,
+        workloadPerDay,
         appointmentNotifications,
-        weeklySchedule,
-        pendingBedRequestsCount
+        weeklySchedule
       });
     }
 
-    const [records, userCount, pendingCount, acceptedCount, rejectedCount, bedRecords] = await Promise.all([
-      AppointmentDetail.find({}).sort({ createdAt: -1 }).limit(8).populate("user_id doctor_id").lean(),
-      User.countDocuments(),
+    const [patientCount, pendingCount, acceptedCount, rejectedCount, bedRecords, doctorCount, activeDoctorCount] = await Promise.all([
+      User.countDocuments({ role: "user" }),
       AppointmentDetail.countDocuments({ status: "Pending" }),
       AppointmentDetail.countDocuments({ status: "Accepted" }),
       AppointmentDetail.countDocuments({ status: "Rejected" }),
-      BedAdmission.find({}).sort({ createdAt: -1 }).limit(6).lean()
+      BedAdmission.find({}).sort({ createdAt: -1 }).limit(6).lean(),
+      Doctor.countDocuments({}),
+      Doctor.countDocuments({ active: true })
     ]);
 
     const bedSummary = buildBedSummary(bedRecords);
-    const bedProjection = computeProjection(bedRecords, "occupied_beds", 3);
     const staffContext = await loadStaffRosterContext();
+    const doctorAppointmentLoad = pendingCount + acceptedCount;
+    const doctorWorkloadAverage = activeDoctorCount > 0
+      ? Math.ceil(doctorAppointmentLoad / activeDoctorCount)
+      : doctorAppointmentLoad;
 
     res.render("main/adminDashboard", {
       title: "Dashboard",
-      records,
-      userCount,
+      patientCount,
       pendingCount,
       acceptedCount,
       rejectedCount,
-      bedRecords,
-      staffRecords: staffContext.rosterRows.slice(0, 6),
       bedSummary,
       staffSummary: staffContext.staffSummary,
-      bedProjection,
-      staffProjection: null,
+      doctorCount,
+      activeDoctorCount,
+      doctorAppointmentLoad,
+      doctorWorkloadAverage,
+      openAiConfigured: Boolean(String(process.env.OPENAI_API_KEY || "").trim()),
       profile: {
         fullName: getUserFullName(req.user),
         email: req.user.email,
@@ -2453,10 +2481,36 @@ app.get("/dashboard", ensureRole("admin", "doctor"), async (req, res, next) => {
   }
 });
 
-app.get("/predict", ensureRole("admin", "doctor"), (req, res) => {
-  res.render("main/predict", {
-    title: "Predict"
-  });
+app.post("/dashboard/resource-forecast", ensureRole("admin"), async (req, res, next) => {
+  try {
+    const validation = resourceForecastRequestSchema.validate(req.body, {
+      abortEarly: true,
+      stripUnknown: true
+    });
+
+    if (validation.error) {
+      return res.status(400).json({
+        error: getValidationMessage(validation.error, "Please check the forecast settings.")
+      });
+    }
+
+    const forecast = await generateResourceForecast(validation.value);
+    res.json({
+      success: true,
+      ...forecast
+    });
+  } catch (err) {
+    if (err?.message) {
+      return res.status(500).json({
+        error: err.message
+      });
+    }
+    next(err);
+  }
+});
+
+app.get("/predict", ensureRole("admin"), (req, res) => {
+  res.redirect("/dashboard#resource-prediction");
 });
 
 app.get("/logout", (req, res, next) => {

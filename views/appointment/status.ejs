@@ -1,14 +1,15 @@
 <% layout("layouts/boilerplate") %>
 <% const mode = viewerMode || (adminMode ? "admin" : "patient"); %>
+<% const doctorSummary = mode === "doctor" && reviewSummary ? reviewSummary : null; %>
 
 <div class="py-5">
   <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
     <div>
       <h1 class="h3 fw-bold mb-2">
-        <%= mode === "admin" ? "Appointment Queue" : mode === "doctor" ? "Approved Patients" : "Appointment Status" %>
+        <%= mode === "admin" ? "Appointment Queue" : mode === "doctor" ? "Assigned Appointments" : "Appointment Status" %>
       </h1>
       <p class="text-muted mb-0">
-        <%= mode === "admin" ? "Review requests, approve or reject them, and download receipts." : mode === "doctor" ? "See the approved patients for your schedule and the latest request notices." : "Track your request and download the receipt once it is created." %>
+        <%= mode === "admin" ? "Review requests, approve or reject them, and download receipts." : mode === "doctor" ? "Review your assigned appointments, approve or reject pending requests, and keep your schedule moving." : "Track your request and download the receipt once it is created." %>
       </p>
     </div>
     <% if (mode === "admin") { %>
@@ -29,6 +30,43 @@
     </div>
   <% } %>
 
+  <% if (doctorSummary) { %>
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <div class="card h-100">
+          <div class="card-body">
+            <div class="text-muted small">Assigned</div>
+            <div class="h3 mb-0"><%= doctorSummary.total %></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card h-100">
+          <div class="card-body">
+            <div class="text-muted small">Pending</div>
+            <div class="h3 mb-0"><%= doctorSummary.pending %></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card h-100">
+          <div class="card-body">
+            <div class="text-muted small">Approved</div>
+            <div class="h3 mb-0"><%= doctorSummary.accepted %></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card h-100">
+          <div class="card-body">
+            <div class="text-muted small">Rejected</div>
+            <div class="h3 mb-0"><%= doctorSummary.rejected %></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% } %>
+
   <div class="card">
     <div class="card-body">
       <div class="table-responsive">
@@ -41,8 +79,9 @@
                 <th>Symptoms</th>
                 <th>Date</th>
                 <th>Time</th>
-                <th>Action</th>
+                <th>Urgency</th>
                 <th>Status</th>
+                <th>Actions</th>
               <% } else if (mode === "admin") { %>
                 <th>User ID</th>
                 <th>Patient</th>
@@ -70,8 +109,8 @@
           <tbody>
             <% if (!records || records.length === 0) { %>
               <tr>
-                <td colspan="<%= mode === 'doctor' ? 7 : mode === 'admin' ? 11 : 8 %>" class="text-center py-4 text-muted">
-                  <%= mode === "doctor" ? "No approved patients yet." : mode === "admin" ? "No appointment requests submitted yet." : "No appointment requests submitted yet." %>
+                <td colspan="<%= mode === 'doctor' ? 8 : mode === 'admin' ? 11 : 8 %>" class="text-center py-4 text-muted">
+                  <%= mode === "doctor" ? "No assigned appointments yet." : mode === "admin" ? "No appointment requests submitted yet." : "No appointment requests submitted yet." %>
                 </td>
               </tr>
             <% } else { %>
@@ -79,6 +118,7 @@
                 <% const patientUser = record.user_id && record.user_id.first_name ? record.user_id : null; %>
                 <% const doctorUser = record.doctor_id && record.doctor_id.name ? record.doctor_id : null; %>
                 <% const receiptUrl = "/appointments/" + record._id + "/receipt.pdf"; %>
+                <% const statusClass = record.status === "Accepted" ? "success" : record.status === "Rejected" ? "danger" : "warning"; %>
                 <tr>
                   <% if (mode === "doctor") { %>
                     <td>
@@ -90,9 +130,29 @@
                     <td><%= record.appointment_date || "-" %></td>
                     <td><%= record.time_slot || "-" %></td>
                     <td>
-                      <a href="/bed-requests?appointment_id=<%= record._id %>" class="btn btn-sm btn-outline-primary">Request Bed</a>
+                      <span class="badge text-bg-<%= record.urgency_level === 'high' ? 'danger' : record.urgency_level === 'medium' ? 'warning' : 'success' %>">
+                        <%= record.urgency_level || "-" %>
+                      </span>
                     </td>
-                    <td><span class="badge text-bg-<%= record.status === 'Accepted' ? 'success' : record.status === 'Rejected' ? 'danger' : 'warning' %> text-uppercase"><%= record.status === 'Accepted' ? 'Approved' : record.status %></span></td>
+                    <td>
+                      <span class="badge text-bg-<%= statusClass %> text-uppercase">
+                        <%= record.status === 'Accepted' ? 'Approved' : record.status %>
+                      </span>
+                    </td>
+                    <td>
+                      <% if (record.status === "Pending") { %>
+                        <div class="d-flex flex-wrap gap-2">
+                          <form action="/check-appointments/<%= record._id %>/accept" method="POST">
+                            <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                          </form>
+                          <form action="/check-appointments/<%= record._id %>/reject" method="POST">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Reject</button>
+                          </form>
+                        </div>
+                      <% } else { %>
+                        <span class="text-muted small">Reviewed</span>
+                      <% } %>
+                    </td>
                   <% } else if (mode === "admin") { %>
                     <td><%= record.user_id && record.user_id._id ? String(record.user_id._id) : record.user_id ? String(record.user_id) : "-" %></td>
                     <td>
@@ -113,7 +173,7 @@
                       </span>
                     </td>
                     <td>
-                      <span class="badge text-bg-<%= record.status === 'Accepted' ? 'success' : record.status === 'Rejected' ? 'danger' : 'warning' %> text-uppercase">
+                      <span class="badge text-bg-<%= statusClass %> text-uppercase">
                         <%= record.status === 'Accepted' ? 'Approved' : record.status %>
                       </span>
                     </td>
@@ -148,7 +208,7 @@
                       </span>
                     </td>
                     <td>
-                      <span class="badge text-bg-<%= record.status === 'Accepted' ? 'success' : record.status === 'Rejected' ? 'danger' : 'warning' %> text-uppercase">
+                      <span class="badge text-bg-<%= statusClass %> text-uppercase">
                         <%= record.status === 'Accepted' ? 'Approved' : record.status %>
                       </span>
                     </td>

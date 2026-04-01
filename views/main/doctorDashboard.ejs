@@ -1,25 +1,28 @@
 <% layout("layouts/boilerplate") %>
+<% const assignedRows = Array.isArray(assignedAppointments) ? assignedAppointments : []; %>
+<% const availabilityDays = doctorProfile && Array.isArray(doctorProfile.availability_days) ? doctorProfile.availability_days.length : (typeof availabilityDaysCount !== "undefined" ? availabilityDaysCount : 0); %>
+<% const assignedCountValue = typeof assignedCount !== "undefined" ? assignedCount : assignedRows.length; %>
+<% const approvedCountValue = typeof acceptedCount !== "undefined" ? acceptedCount : assignedRows.filter((record) => String(record.status || "").trim() === "Accepted").length; %>
+<% const pendingCountValue = typeof pendingAppointmentCount !== "undefined" ? pendingAppointmentCount : assignedRows.filter((record) => String(record.status || "").trim() === "Pending").length; %>
+<% const workloadPerDayValue = typeof workloadPerDay !== "undefined" ? workloadPerDay : (availabilityDays > 0 ? Math.ceil((assignedCountValue || 0) / availabilityDays) : assignedCountValue || 0); %>
 
 <div class="py-4 py-lg-5">
   <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
     <div>
       <h1 class="h3 fw-bold mb-2">Doctor Dashboard</h1>
-      <p class="text-muted mb-0">Your weekly schedule, appointment alerts, and approved patients in one place.</p>
+      <p class="text-muted mb-0">Review assigned appointments, track workload, and keep the schedule moving.</p>
     </div>
     <div class="d-flex flex-wrap gap-2">
-      <a href="/check-appointments" class="btn btn-outline-primary btn-sm">Approved Patients</a>
-      <a href="/bed-requests" class="btn btn-outline-secondary btn-sm">
-        Bed Requests<% if (typeof pendingBedRequestsCount !== "undefined") { %> (<%= pendingBedRequestsCount %>)<% } %>
-      </a>
+      <a href="/check-appointments" class="btn btn-outline-primary btn-sm">Review Queue</a>
       <a href="/profile" class="btn btn-outline-secondary btn-sm">Profile</a>
     </div>
   </div>
 
-  <% if (typeof pendingAppointmentCount !== "undefined" && pendingAppointmentCount !== null) { %>
+  <% if ((pendingAppointmentCount || 0) > 0) { %>
     <div class="alert alert-warning border d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
       <div>
         <div class="fw-semibold">New appointment requests</div>
-        <div class="small text-muted">These are waiting for admin approval and doctor review.</div>
+        <div class="small text-muted">These are waiting for your review.</div>
       </div>
       <span class="badge text-bg-dark"><%= pendingAppointmentCount %> pending</span>
     </div>
@@ -29,34 +32,33 @@
     <div class="col-md-3">
       <div class="card h-100">
         <div class="card-body">
-          <div class="text-muted small">Approved Patients</div>
-          <div class="h3 mb-0"><%= acceptedCount || 0 %></div>
+          <div class="text-muted small">Assigned Appointments</div>
+          <div class="h3 mb-0"><%= assignedCountValue || 0 %></div>
         </div>
       </div>
     </div>
     <div class="col-md-3">
       <div class="card h-100">
         <div class="card-body">
-          <div class="text-muted small">Specialization</div>
-          <div class="h3 mb-0"><%= doctorProfile ? doctorProfile.specialization : "-" %></div>
+          <div class="text-muted small">Pending Reviews</div>
+          <div class="h3 mb-0"><%= pendingCountValue || 0 %></div>
         </div>
       </div>
     </div>
     <div class="col-md-3">
       <div class="card h-100">
         <div class="card-body">
-          <div class="text-muted small">Department</div>
-          <div class="h3 mb-0"><%= doctorProfile ? doctorProfile.department || "-" : "-" %></div>
+          <div class="text-muted small">Approved</div>
+          <div class="h3 mb-0"><%= approvedCountValue || 0 %></div>
         </div>
       </div>
     </div>
     <div class="col-md-3">
       <div class="card h-100">
         <div class="card-body">
-          <div class="text-muted small">Hospital Hours</div>
-          <div class="h3 mb-0">
-            <%= doctorProfile ? (doctorProfile.hospital_start_time || "-") + " to " + (doctorProfile.hospital_end_time || "-") : "-" %>
-          </div>
+          <div class="text-muted small">Workload / Day</div>
+          <div class="h3 mb-0"><%= workloadPerDayValue || 0 %></div>
+          <div class="small text-muted"><%= availabilityDays || 0 %> active days</div>
         </div>
       </div>
     </div>
@@ -105,8 +107,8 @@
       <div class="card h-100">
         <div class="card-body p-4">
           <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-            <h2 class="h5 mb-0">Approved Patients</h2>
-            <span class="badge text-bg-light border"><%= acceptedAppointments ? acceptedAppointments.length : 0 %> records</span>
+            <h2 class="h5 mb-0">Assigned Appointments</h2>
+            <span class="badge text-bg-light border"><%= assignedRows.length %> records</span>
           </div>
 
           <div class="table-responsive">
@@ -117,25 +119,28 @@
                   <th>Email</th>
                   <th>Date</th>
                   <th>Time</th>
-                  <th>Action</th>
+                  <th>Urgency</th>
+                  <th>Status</th>
                 </tr>
               </thead>
               <tbody>
-                <% if (!acceptedAppointments || acceptedAppointments.length === 0) { %>
+                <% if (!assignedRows || assignedRows.length === 0) { %>
                   <tr>
-                    <td colspan="5" class="text-center py-4 text-muted">No approved patients yet.</td>
+                    <td colspan="6" class="text-center py-4 text-muted">No assigned appointments yet.</td>
                   </tr>
                 <% } else { %>
-                  <% acceptedAppointments.forEach((record) => { %>
+                  <% assignedRows.forEach((record) => { %>
                     <% const patientUser = record.user_id && record.user_id.first_name ? record.user_id : null; %>
+                    <% const statusClass = record.status === "Accepted" ? "success" : record.status === "Rejected" ? "danger" : "warning"; %>
                     <tr>
-                      <td><%= patientUser ? patientUser.first_name + " " + patientUser.last_name : record.full_name || "-" %></td>
+                      <td>
+                        <div class="fw-semibold"><%= patientUser ? patientUser.first_name + " " + patientUser.last_name : record.full_name || "-" %></div>
+                      </td>
                       <td><%= patientUser ? patientUser.email : record.email || "-" %></td>
                       <td><%= record.appointment_date || "-" %></td>
                       <td><%= record.time_slot || "-" %></td>
-                      <td>
-                        <a href="/bed-requests?appointment_id=<%= record._id %>" class="btn btn-sm btn-outline-primary">Request Bed</a>
-                      </td>
+                      <td><span class="badge text-bg-<%= record.urgency_level === 'high' ? 'danger' : record.urgency_level === 'medium' ? 'warning' : 'success' %>"><%= record.urgency_level || "-" %></span></td>
+                      <td><span class="badge text-bg-<%= statusClass %> text-uppercase"><%= record.status === "Accepted" ? "Approved" : record.status %></span></td>
                     </tr>
                   <% }) %>
                 <% } %>
