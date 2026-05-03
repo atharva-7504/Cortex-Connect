@@ -112,7 +112,7 @@
           </div>
 
           <div class="table-responsive">
-            <table class="table table-sm align-middle mb-0">
+            <table class="table table-sm align-middle mb-0 mobile-table-cards">
               <thead class="table-light">
                 <tr>
                   <th>Patient</th>
@@ -133,14 +133,14 @@
                     <% const patientUser = record.user_id && record.user_id.first_name ? record.user_id : null; %>
                     <% const statusClass = record.status === "Accepted" ? "success" : record.status === "Rejected" ? "danger" : "warning"; %>
                     <tr>
-                      <td>
+                      <td data-label="Patient">
                         <div class="fw-semibold"><%= patientUser ? patientUser.first_name + " " + patientUser.last_name : record.full_name || "-" %></div>
                       </td>
-                      <td><%= patientUser ? patientUser.email : record.email || "-" %></td>
-                      <td><%= record.appointment_date || "-" %></td>
-                      <td><%= record.time_slot || "-" %></td>
-                      <td><span class="badge text-bg-<%= record.urgency_level === 'high' ? 'danger' : record.urgency_level === 'medium' ? 'warning' : 'success' %>"><%= record.urgency_level || "-" %></span></td>
-                      <td><span class="badge text-bg-<%= statusClass %> text-uppercase"><%= record.status === "Accepted" ? "Approved" : record.status %></span></td>
+                      <td data-label="Email"><%= patientUser ? patientUser.email : record.email || "-" %></td>
+                      <td data-label="Date"><%= record.appointment_date || "-" %></td>
+                      <td data-label="Time"><%= record.time_slot || "-" %></td>
+                      <td data-label="Urgency"><span class="badge text-bg-<%= record.urgency_level === 'high' ? 'danger' : record.urgency_level === 'medium' ? 'warning' : 'success' %>"><%= record.urgency_level || "-" %></span></td>
+                      <td data-label="Status"><span class="badge text-bg-<%= statusClass %> text-uppercase"><%= record.status === "Accepted" ? "Approved" : record.status %></span></td>
                     </tr>
                   <% }) %>
                 <% } %>
@@ -162,7 +162,7 @@
           </div>
 
           <div class="table-responsive">
-            <table class="table table-sm align-middle mb-0">
+            <table class="table table-sm align-middle mb-0 mobile-table-cards">
               <thead class="table-light">
                 <tr>
                   <th>Day</th>
@@ -180,14 +180,14 @@
                 <% } else { %>
                   <% weeklySchedule.forEach((slot) => { %>
                     <tr>
-                      <td><%= slot.day %></td>
-                      <td><%= slot.dateLabel %></td>
-                      <td><%= slot.timeWindow %></td>
-                      <td><%= slot.slots && slot.slots.length ? slot.slots.join(", ") : "-" %></td>
-                      <td>
-                        <span class="badge text-bg-<%= slot.available ? 'success' : 'secondary' %> text-uppercase">
-                          <%= slot.available ? "Available" : "Off" %>
-                        </span>
+                    <td data-label="Day"><%= slot.day %></td>
+                    <td data-label="Date"><%= slot.dateLabel %></td>
+                    <td data-label="Window"><%= slot.timeWindow %></td>
+                    <td data-label="Slots"><%= slot.slots && slot.slots.length ? slot.slots.join(", ") : "-" %></td>
+                    <td data-label="Status">
+                      <span class="badge text-bg-<%= slot.available ? 'success' : 'secondary' %> text-uppercase">
+                        <%= slot.available ? "Available" : "Off" %>
+                      </span>
                       </td>
                     </tr>
                   <% }) %>

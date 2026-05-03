@@ -1,12 +1,64 @@
 <% layout("layouts/boilerplate") %>
 
-<div class="py-4 py-lg-5">
+<%
+  const bedCategoryLabels = {
+    normal: "Normal",
+    critical: "Critical",
+    icu: "ICU"
+  };
+
+  const formatDateLabel = (value) => {
+    if (!value) return "-";
+    const date = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  };
+
+  const formatDateTimeLabel = (value) => {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit"
+    });
+  };
+
+  const titleize = (value) => {
+    const text = String(value || "").trim();
+    if (!text) return "-";
+    return text
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (character) => character.toUpperCase());
+  };
+
+  const statusClass = (value) => {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (normalized === "accepted" || normalized === "approved") return "bg-success";
+    if (normalized === "rejected") return "bg-danger";
+    if (normalized === "pending") return "bg-warning text-dark";
+    if (normalized === "active") return "bg-success";
+    if (normalized === "inactive") return "bg-secondary";
+    return "bg-light text-dark border";
+  };
+
+  const bedOccupancyPct = Number(bedSummary ? bedSummary.occupancyPct : 0);
+  const bedOccupancyDisplay = Math.max(0, Math.min(bedOccupancyPct || 0, 100));
+  const totalAppointments = Number(appointmentCount || 0);
+  const staffCoveragePctValue = Number(staffCoveragePct || 0);
+  const doctorAvailabilityPctValue = Number(doctorAvailabilityPct || 0);
+%>
+
+<div class="dashboard-page">
   <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
     <div>
-      <h1 class="h3 fw-bold mb-2">Dashboard</h1>
+      <h1 class="h3 fw-bold mb-1">Dashboard</h1>
       <p class="text-muted mb-0">Operations overview for CortexConnect.</p>
     </div>
-    <div class="d-flex flex-wrap gap-2">
+    <div class="dashboard-toolbar d-flex flex-wrap gap-2">
       <a href="/check-appointments" class="btn btn-outline-primary btn-sm">Appointments</a>
       <% if (profile && profile.role === "admin") { %>
         <a href="/bed-admissions" class="btn btn-outline-primary btn-sm">Bed Admissions</a>
@@ -15,305 +67,431 @@
   </div>
 
   <div class="row g-3 mb-4">
-    <div class="col-md-3">
-      <div class="card h-100">
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="card dashboard-stat-card h-100">
         <div class="card-body">
-          <div class="text-muted small">Patients</div>
-          <div class="h3 mb-0"><%= patientCount %></div>
+          <div class="dashboard-stat-label">Patients</div>
+          <div class="dashboard-stat-value"><%= patientCount %></div>
         </div>
       </div>
     </div>
-    <div class="col-md-3">
-      <div class="card h-100">
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="card dashboard-stat-card h-100">
         <div class="card-body">
-          <div class="text-muted small">Pending Appointments</div>
-          <div class="h3 mb-0"><%= pendingCount %></div>
+          <div class="dashboard-stat-label">Appointments</div>
+          <div class="dashboard-stat-value"><%= totalAppointments %></div>
         </div>
       </div>
     </div>
-    <div class="col-md-3">
-      <div class="card h-100">
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="card dashboard-stat-card h-100">
         <div class="card-body">
-          <div class="text-muted small">Approved</div>
-          <div class="h3 mb-0"><%= acceptedCount %></div>
+          <div class="dashboard-stat-label">Bed Occupancy</div>
+          <div class="dashboard-stat-value"><%= bedOccupancyDisplay %>%</div>
         </div>
       </div>
     </div>
-    <div class="col-md-3">
-      <div class="card h-100">
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="card dashboard-stat-card h-100">
         <div class="card-body">
-          <div class="text-muted small">Rejected</div>
-          <div class="h3 mb-0"><%= rejectedCount %></div>
+          <div class="dashboard-stat-label">Staff Coverage</div>
+          <div class="dashboard-stat-value"><%= staffCoveragePctValue %>%</div>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="row g-4 mb-4">
-    <div class="col-lg-6">
-      <div class="card h-100">
-        <div class="card-body p-4">
-          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-            <h2 class="h5 mb-0">Bed Snapshot</h2>
-            <span class="badge text-bg-light border">Latest snapshot</span>
-          </div>
-
-          <% if (bedSummary) { %>
-            <div class="alert alert-<%= bedSummary.occupancyPct >= 90 || bedSummary.freeBeds <= 5 ? 'danger' : bedSummary.occupancyPct >= 80 ? 'warning' : 'success' %>">
-              <% if (bedSummary.occupancyPct >= 90 || bedSummary.freeBeds <= 5) { %>
-                Limited beds available. Keep the ward moving and prepare extra capacity.
-              <% } else if (bedSummary.occupancyPct >= 80) { %>
-                Bed usage is rising. Keep an eye on critical and ICU availability.
-              <% } else { %>
-                Bed capacity is currently under control.
-              <% } %>
-            </div>
-            <div class="mb-3">
-              <div class="d-flex justify-content-between small text-muted mb-1">
-                <span>Occupancy</span>
-                <span><%= bedSummary.occupancyPct %>%</span>
-              </div>
-              <div class="progress" style="height: 12px;">
-                <div
-                  class="progress-bar <%= bedSummary.occupancyPct >= 90 ? 'bg-danger' : bedSummary.occupancyPct >= 80 ? 'bg-warning' : 'bg-success' %>"
-                  style="width: <%= Math.min(bedSummary.occupancyPct, 100) %>%"
-                ></div>
+  <div class="accordion dashboard-accordion" id="adminAnalyticsAccordion">
+    <div class="accordion-item">
+      <h2 class="accordion-header" id="appointmentsHeading">
+        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#appointmentsCollapse" aria-expanded="true" aria-controls="appointmentsCollapse">
+          Appointment Analysis
+        </button>
+      </h2>
+      <div id="appointmentsCollapse" class="accordion-collapse collapse show" aria-labelledby="appointmentsHeading" data-bs-parent="#adminAnalyticsAccordion">
+        <div class="accordion-body">
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="dashboard-mini-card">
+                <div class="dashboard-mini-label">Pending</div>
+                <div class="dashboard-mini-value"><%= pendingCount %></div>
               </div>
             </div>
-            <div class="row g-3">
-              <div class="col-6 col-xl-3">
-                <div class="border rounded-3 p-3 h-100">
-                  <div class="text-muted small">Total</div>
-                  <div class="h4 mb-0"><%= bedSummary.totalBeds %></div>
-                </div>
-              </div>
-              <div class="col-6 col-xl-3">
-                <div class="border rounded-3 p-3 h-100">
-                  <div class="text-muted small">Occupied</div>
-                  <div class="h4 mb-0"><%= bedSummary.occupiedBeds %></div>
-                </div>
-              </div>
-              <div class="col-6 col-xl-3">
-                <div class="border rounded-3 p-3 h-100">
-                  <div class="text-muted small">Free</div>
-                  <div class="h4 mb-0"><%= bedSummary.freeBeds %></div>
-                </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="dashboard-mini-card">
+                <div class="dashboard-mini-label">Approved</div>
+                <div class="dashboard-mini-value"><%= acceptedCount %></div>
               </div>
             </div>
-
-            <hr class="my-4">
-
-            <div class="row g-3">
-              <div class="col-md-4">
-                <div class="border rounded-3 p-3">
-                  <div class="text-muted small">Normal Demand</div>
-                  <div class="h4 mb-0"><%= bedSummary.normalBeds %></div>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="border rounded-3 p-3">
-                  <div class="text-muted small">Critical Demand</div>
-                  <div class="h4 mb-0"><%= bedSummary.criticalBeds %></div>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="border rounded-3 p-3">
-                  <div class="text-muted small">ICU Demand</div>
-                  <div class="h4 mb-0"><%= bedSummary.icuBeds %></div>
-                </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="dashboard-mini-card">
+                <div class="dashboard-mini-label">Rejected</div>
+                <div class="dashboard-mini-value"><%= rejectedCount %></div>
               </div>
             </div>
-          <% } else { %>
-            <div class="alert alert-info mb-0">No bed admissions recorded yet.</div>
-          <% } %>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-lg-6">
-      <div class="card h-100">
-        <div class="card-body p-4">
-          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-            <h2 class="h5 mb-0">Doctor Workload</h2>
-            <span class="badge text-bg-light border">Live queue</span>
-          </div>
-
-          <div class="row g-3">
-            <div class="col-6 col-xl-4">
-              <div class="border rounded-3 p-3 h-100">
-                <div class="text-muted small">Assigned</div>
-                <div class="h4 mb-0"><%= doctorAppointmentLoad || 0 %></div>
-              </div>
-            </div>
-            <div class="col-6 col-xl-4">
-              <div class="border rounded-3 p-3 h-100">
-                <div class="text-muted small">Avg / Doctor</div>
-                <div class="h4 mb-0"><%= doctorWorkloadAverage || 0 %></div>
-              </div>
-            </div>
-            <div class="col-12 col-xl-4">
-              <div class="border rounded-3 p-3 h-100">
-                <div class="text-muted small">Active Doctors</div>
-                <div class="h4 mb-0"><%= activeDoctorCount || 0 %>/<%= doctorCount || 0 %></div>
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="dashboard-mini-card">
+                <div class="dashboard-mini-label">High Urgency</div>
+                <div class="dashboard-mini-value"><%= highUrgencyAppointmentCount || 0 %></div>
               </div>
             </div>
           </div>
-          <p class="text-muted small mb-0 mt-3">This reflects current pending and approved appointments across the active doctor roster.</p>
-        </div>
-      </div>
-    </div>
-  </div>
 
-<div class="card border-0 shadow-sm mb-4" id="resource-prediction" data-resource-forecast-panel>
-    <div class="card-body p-4 p-lg-5">
-      <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
-        <div>
-          <div class="text-uppercase text-muted small mb-2">OpenAI Forecast</div>
-          <h2 class="h4 fw-bold mb-2">Resource Prediction</h2>
-          <p class="text-muted mb-0">
-            Send the live hospital JSON to OpenAI, set a threshold, and generate a day-wise forecast for up to 7 days.
-          </p>
-        </div>
-        <div class="text-end">
-          <div class="small text-muted">Current data source</div>
-          <div class="fw-semibold">MongoDB snapshot</div>
-        </div>
-      </div>
-
-      <% if (typeof openAiConfigured !== "undefined" && !openAiConfigured) { %>
-        <div class="alert alert-warning">
-          OpenAI is not configured yet. Set <code>OPENAI_API_KEY</code> in <code>.env</code> to enable live predictions from this panel.
-        </div>
-      <% } %>
-
-      <div class="row g-3 mb-4">
-        <div class="col-md-3">
-          <div class="border rounded-3 p-3 h-100">
-            <div class="text-muted small">Bed occupancy</div>
-            <div class="h4 mb-0"><%= bedSummary ? bedSummary.occupancyPct : 0 %>%</div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="border rounded-3 p-3 h-100">
-            <div class="text-muted small">Staff coverage</div>
-            <div class="h4 mb-0"><%= staffSummary ? staffSummary.coveragePct : 0 %>%</div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="border rounded-3 p-3 h-100">
-            <div class="text-muted small">Pending appointments</div>
-            <div class="h4 mb-0"><%= pendingCount || 0 %></div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="border rounded-3 p-3 h-100">
-            <div class="text-muted small">Active doctors</div>
-            <div class="h4 mb-0"><%= activeDoctorCount || 0 %>/<%= doctorCount || 0 %></div>
-          </div>
-        </div>
-      </div>
-
-      <form class="row g-3 align-items-end" data-forecast-form data-endpoint="/dashboard/resource-forecast">
-        <div class="col-md-4 col-lg-3">
-          <label class="form-label">Forecast horizon</label>
-          <select class="form-select" name="horizonDays" data-forecast-days>
-            <% for (let dayCount = 1; dayCount <= 7; dayCount += 1) { %>
-              <option value="<%= dayCount %>" <%= dayCount === 7 ? "selected" : "" %>><%= dayCount %> day<%= dayCount === 1 ? "" : "s" %></option>
-            <% } %>
-          </select>
-          <div class="form-text">OpenAI will forecast up to 7 days ahead.</div>
-        </div>
-        <div class="col-md-4 col-lg-3">
-          <label class="form-label">Load threshold %</label>
-          <input type="number" min="1" max="100" class="form-control" name="thresholdPct" value="80" data-forecast-threshold required>
-          <div class="form-text">Days at or above this load will be flagged.</div>
-        </div>
-        <div class="col-md-4 col-lg-6 d-flex flex-wrap gap-2">
-          <button type="submit" class="btn btn-primary" data-forecast-submit>Generate forecast</button>
-          <button type="button" class="btn btn-outline-secondary" data-forecast-reset>Reset</button>
-        </div>
-      </form>
-
-      <div class="alert alert-info mt-4 mb-0" data-forecast-status>
-        Set the horizon and threshold, then generate a live OpenAI forecast.
-      </div>
-
-      <div class="mt-4" data-forecast-empty>
-        <div class="border rounded-3 p-4 bg-light">
-          <div class="fw-semibold mb-1">No forecast yet</div>
-          <div class="text-muted mb-0">Run the prediction to render charts and the day-wise load table here.</div>
-        </div>
-      </div>
-
-      <div class="row g-4 mt-1" data-forecast-results hidden>
-        <div class="col-lg-8">
-          <div class="card h-100">
-            <div class="card-body p-4">
-              <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
-                <h3 class="h6 mb-0">Overall load vs threshold</h3>
-                <span class="badge text-bg-light border" data-forecast-ratio>0%</span>
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-sm-4">
+              <div class="dashboard-mini-card">
+                <div class="dashboard-mini-label">Approval Rate</div>
+                <div class="dashboard-mini-value"><%= appointmentApprovalRate || 0 %>%</div>
               </div>
-              <div style="min-height: 320px;">
-                <canvas data-forecast-overall-chart></canvas>
+            </div>
+            <div class="col-12 col-sm-4">
+              <div class="dashboard-mini-card">
+                <div class="dashboard-mini-label">Pending Share</div>
+                <div class="dashboard-mini-value"><%= appointmentPendingRate || 0 %>%</div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-4">
+              <div class="dashboard-mini-card">
+                <div class="dashboard-mini-label">Rejection Rate</div>
+                <div class="dashboard-mini-value"><%= appointmentRejectionRate || 0 %>%</div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div class="col-lg-4">
-          <div class="card h-100">
-            <div class="card-body p-4">
-              <h3 class="h6 mb-3">Forecast summary</h3>
-              <div class="list-group list-group-flush" data-forecast-summary></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-12">
-          <div class="card">
-            <div class="card-body p-4">
-              <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
-                <h3 class="h6 mb-0">Load breakdown</h3>
-                <span class="badge text-bg-light border">Beds, staff, and appointment pressure</span>
-              </div>
-              <div style="min-height: 320px;">
-                <canvas data-forecast-breakdown-chart></canvas>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-12">
-          <div class="card">
-            <div class="card-body p-4">
-              <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
-                <h3 class="h6 mb-0">Day-wise forecast</h3>
-                <span class="text-muted small" data-forecast-generated></span>
-              </div>
-              <div class="table-responsive">
-                <table class="table table-sm align-middle mb-0">
-                  <thead class="table-light">
+          <div class="table-responsive">
+            <table class="table table-sm align-middle dashboard-table mb-0 mobile-table-cards">
+              <thead>
+                <tr>
+                  <th>Patient</th>
+                  <th>Doctor</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if (recentAppointments && recentAppointments.length) { %>
+                  <% recentAppointments.forEach((appointment) => { %>
                     <tr>
-                      <th>Date</th>
-                      <th>Overall</th>
-                      <th>Beds</th>
-                      <th>Staff</th>
-                      <th>Appointments</th>
-                      <th>Threshold</th>
-                      <th>Confidence</th>
-                      <th>Note</th>
+                      <td data-label="Patient"><%= appointment.full_name || "-" %></td>
+                      <td data-label="Doctor"><%= appointment.doctor_name || appointment.doctor_id?.name || "-" %></td>
+                      <td data-label="Date"><%= formatDateLabel(appointment.appointment_date) %></td>
+                      <td data-label="Status">
+                        <span class="badge rounded-pill <%= statusClass(appointment.status) %>"><%= titleize(appointment.status) %></span>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody data-forecast-table></tbody>
-                </table>
+                  <% }) %>
+                <% } else { %>
+                  <tr>
+                    <td colspan="4">
+                      <div class="dashboard-empty">No appointments yet.</div>
+                    </td>
+                  </tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item">
+      <h2 class="accordion-header" id="bedsHeading">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#bedsCollapse" aria-expanded="false" aria-controls="bedsCollapse">
+          Bed Analysis
+        </button>
+      </h2>
+      <div id="bedsCollapse" class="accordion-collapse collapse" aria-labelledby="bedsHeading" data-bs-parent="#adminAnalyticsAccordion">
+        <div class="accordion-body">
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="dashboard-mini-card">
+                <div class="dashboard-mini-label">Total Beds</div>
+                <div class="dashboard-mini-value"><%= bedSummary ? bedSummary.totalBeds : 0 %></div>
               </div>
             </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="dashboard-mini-card">
+                <div class="dashboard-mini-label">Occupied</div>
+                <div class="dashboard-mini-value"><%= bedSummary ? bedSummary.occupiedBeds : 0 %></div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="dashboard-mini-card">
+                <div class="dashboard-mini-label">Free</div>
+                <div class="dashboard-mini-value"><%= bedSummary ? bedSummary.freeBeds : 0 %></div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="dashboard-mini-card">
+                <div class="dashboard-mini-label">Occupancy</div>
+                <div class="dashboard-mini-value"><%= bedOccupancyDisplay %>%</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-sm-4">
+              <div class="dashboard-mini-card">
+                <div class="dashboard-mini-label">Normal Demand</div>
+                <div class="dashboard-mini-value"><%= bedSummary ? bedSummary.normalBeds : 0 %></div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-4">
+              <div class="dashboard-mini-card">
+                <div class="dashboard-mini-label">Critical Demand</div>
+                <div class="dashboard-mini-value"><%= bedSummary ? bedSummary.criticalBeds : 0 %></div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-4">
+              <div class="dashboard-mini-card">
+                <div class="dashboard-mini-label">ICU Demand</div>
+                <div class="dashboard-mini-value"><%= bedSummary ? bedSummary.icuBeds : 0 %></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-sm-4">
+              <div class="dashboard-mini-card">
+                <div class="dashboard-mini-label">Admissions Today</div>
+                <div class="dashboard-mini-value"><%= bedSummary ? bedSummary.admissionsToday : 0 %></div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-4">
+              <div class="dashboard-mini-card">
+                <div class="dashboard-mini-label">Discharges Today</div>
+                <div class="dashboard-mini-value"><%= bedSummary ? bedSummary.dischargesToday : 0 %></div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-4">
+              <div class="dashboard-mini-card">
+                <div class="dashboard-mini-label">Expected Discharges</div>
+                <div class="dashboard-mini-value"><%= bedSummary ? bedSummary.expectedDischarges : 0 %></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-sm align-middle dashboard-table mb-0 mobile-table-cards">
+              <thead>
+                <tr>
+                  <th>Patient</th>
+                  <th>Category</th>
+                  <th>Beds</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if (bedSummary && bedRecords && bedRecords.length) { %>
+                  <% bedRecords.forEach((record) => { %>
+                    <% const totalBeds = Number(record.total_beds || 0); %>
+                    <% const occupiedBeds = Number(record.occupied_beds || 0); %>
+                    <% const freeBeds = Math.max(totalBeds - occupiedBeds, 0); %>
+                    <tr>
+                      <td data-label="Patient"><%= record.patient_name || "-" %></td>
+                      <td data-label="Category"><%= bedCategoryLabels[record.bed_category] || titleize(record.bed_category) %></td>
+                      <td data-label="Beds"><%= occupiedBeds %> / <%= totalBeds %> <span class="text-muted">(<%= freeBeds %> free)</span></td>
+                      <td data-label="Date"><%= formatDateLabel(record.admission_date) %></td>
+                    </tr>
+                  <% }) %>
+                <% } else { %>
+                  <tr>
+                    <td colspan="4">
+                      <div class="dashboard-empty">No bed admissions yet.</div>
+                    </td>
+                  </tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item">
+      <h2 class="accordion-header" id="teamHeading">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#teamCollapse" aria-expanded="false" aria-controls="teamCollapse">
+          Team Analysis
+        </button>
+      </h2>
+      <div id="teamCollapse" class="accordion-collapse collapse" aria-labelledby="teamHeading" data-bs-parent="#adminAnalyticsAccordion">
+        <div class="accordion-body">
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="dashboard-mini-card">
+                <div class="dashboard-mini-label">Total Doctors</div>
+                <div class="dashboard-mini-value"><%= doctorCount || 0 %></div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="dashboard-mini-card">
+                <div class="dashboard-mini-label">Active Doctors</div>
+                <div class="dashboard-mini-value"><%= activeDoctorCount || 0 %></div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="dashboard-mini-card">
+                <div class="dashboard-mini-label">Availability</div>
+                <div class="dashboard-mini-value"><%= doctorAvailabilityPctValue %>%</div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="dashboard-mini-card">
+                <div class="dashboard-mini-label">Staff Coverage</div>
+                <div class="dashboard-mini-value"><%= staffCoveragePctValue %>%</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-sm-4">
+              <div class="dashboard-mini-card">
+                <div class="dashboard-mini-label">Active Staff</div>
+                <div class="dashboard-mini-value"><%= staffActiveCount || 0 %> / <%= staffTotalCount || 0 %></div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-4">
+              <div class="dashboard-mini-card">
+                <div class="dashboard-mini-label">Workload / Doctor</div>
+                <div class="dashboard-mini-value"><%= doctorWorkloadAverage || 0 %></div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-4">
+              <div class="dashboard-mini-card">
+                <div class="dashboard-mini-label">Queue Load</div>
+                <div class="dashboard-mini-value"><%= doctorAppointmentLoad || 0 %></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-sm align-middle dashboard-table mb-0 mobile-table-cards">
+              <thead>
+                <tr>
+                  <th>Doctor</th>
+                  <th>Department</th>
+                  <th>Status</th>
+                  <th>Hours</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if (doctorRows && doctorRows.length) { %>
+                  <% doctorRows.forEach((doctor) => { %>
+                    <tr>
+                      <td data-label="Doctor"><%= doctor.staff_name || "-" %></td>
+                      <td data-label="Department"><%= doctor.department || "-" %></td>
+                      <td data-label="Status">
+                        <span class="badge rounded-pill <%= statusClass(doctor.status) %>"><%= titleize(doctor.status) %></span>
+                      </td>
+                      <td data-label="Hours"><%= doctor.hours_label || "-" %></td>
+                    </tr>
+                  <% }) %>
+                <% } else { %>
+                  <tr>
+                    <td colspan="4">
+                      <div class="dashboard-empty">No staff data available.</div>
+                    </td>
+                  </tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item">
+      <h2 class="accordion-header" id="requestsHeading">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#requestsCollapse" aria-expanded="false" aria-controls="requestsCollapse">
+          Bed Request Analysis
+        </button>
+      </h2>
+      <div id="requestsCollapse" class="accordion-collapse collapse" aria-labelledby="requestsHeading" data-bs-parent="#adminAnalyticsAccordion">
+        <div class="accordion-body">
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="dashboard-mini-card">
+                <div class="dashboard-mini-label">Total Requests</div>
+                <div class="dashboard-mini-value"><%= bedRequestCount || 0 %></div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="dashboard-mini-card">
+                <div class="dashboard-mini-label">Pending</div>
+                <div class="dashboard-mini-value"><%= bedRequestPendingCount || 0 %></div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="dashboard-mini-card">
+                <div class="dashboard-mini-label">Approved</div>
+                <div class="dashboard-mini-value"><%= bedRequestApprovedCount || 0 %></div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+              <div class="dashboard-mini-card">
+                <div class="dashboard-mini-label">Rejected</div>
+                <div class="dashboard-mini-value"><%= bedRequestRejectedCount || 0 %></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-sm-4">
+              <div class="dashboard-mini-card">
+                <div class="dashboard-mini-label">Pending Share</div>
+                <div class="dashboard-mini-value"><%= bedRequestPendingRate || 0 %>%</div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-4">
+              <div class="dashboard-mini-card">
+                <div class="dashboard-mini-label">Approved Share</div>
+                <div class="dashboard-mini-value"><%= bedRequestApprovedRate || 0 %>%</div>
+              </div>
+            </div>
+            <div class="col-12 col-sm-4">
+              <div class="dashboard-mini-card">
+                <div class="dashboard-mini-label">Rejected Share</div>
+                <div class="dashboard-mini-value"><%= bedRequestRejectedRate || 0 %>%</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-sm align-middle dashboard-table mb-0 mobile-table-cards">
+              <thead>
+                <tr>
+                  <th>Patient</th>
+                  <th>Doctor</th>
+                  <th>Category</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if (recentBedRequests && recentBedRequests.length) { %>
+                  <% recentBedRequests.forEach((request) => { %>
+                    <tr>
+                      <td data-label="Patient"><%= request.patient_name || "-" %></td>
+                      <td data-label="Doctor"><%= request.doctor_id?.name || request.doctor_name || "-" %></td>
+                      <td data-label="Category"><%= bedCategoryLabels[request.bed_category] || titleize(request.bed_category) %></td>
+                      <td data-label="Status">
+                        <span class="badge rounded-pill <%= statusClass(request.status) %>"><%= titleize(request.status) %></span>
+                      </td>
+                      <td data-label="Created"><%= formatDateTimeLabel(request.createdAt) %></td>
+                    </tr>
+                  <% }) %>
+                <% } else { %>
+                  <tr>
+                    <td colspan="5">
+                      <div class="dashboard-empty">No bed requests yet.</div>
+                    </td>
+                  </tr>
+                <% } %>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
     </div>
   </div>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="/js/adminDashboard.js"></script>

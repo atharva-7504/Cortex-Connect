@@ -122,7 +122,7 @@
       </div>
 
       <div class="table-responsive">
-        <table class="table table-sm align-middle mb-0">
+        <table class="table table-sm align-middle mb-0 mobile-table-cards">
           <thead class="table-light">
             <tr>
               <th>Patient</th>
@@ -149,19 +149,19 @@
                 <% const approveAction = "/bed-admissions/requests/" + record._id + "/approve?bed_category=" + selectedCategory + "&search=" + encodeURIComponent(typeof search !== 'undefined' ? search : ''); %>
                 <% const rejectAction = "/bed-admissions/requests/" + record._id + "/reject?bed_category=" + selectedCategory + "&search=" + encodeURIComponent(typeof search !== 'undefined' ? search : ''); %>
                 <tr>
-                  <td>
+                  <td data-label="Patient">
                     <div class="fw-semibold"><%= patientName %></div>
                     <div class="text-muted small"><%= record.patient_email || appointment?.email || "-" %></div>
                   </td>
-                  <td><%= doctorName %></td>
-                  <td><%= record.bed_category || "-" %></td>
-                  <td><span class="badge text-bg-<%= record.urgency_level === 'high' ? 'danger' : record.urgency_level === 'medium' ? 'warning' : 'success' %>"><%= record.urgency_level || "-" %></span></td>
-                  <td>
+                  <td data-label="Doctor"><%= doctorName %></td>
+                  <td data-label="Category"><%= record.bed_category || "-" %></td>
+                  <td data-label="Urgency"><span class="badge text-bg-<%= record.urgency_level === 'high' ? 'danger' : record.urgency_level === 'medium' ? 'warning' : 'success' %>"><%= record.urgency_level || "-" %></span></td>
+                  <td data-label="Appointment">
                     <div><%= appointment ? appointment.appointment_date : "-" %></div>
                     <div class="text-muted small"><%= appointment ? appointment.time_slot : "-" %></div>
                   </td>
-                  <td><%= record.notes || appointment?.symptoms || "-" %></td>
-                  <td>
+                  <td data-label="Notes"><%= record.notes || appointment?.symptoms || "-" %></td>
+                  <td data-label="Actions">
                     <div class="d-flex flex-wrap gap-2">
                       <form action="<%= approveAction %>" method="POST">
                         <button type="submit" class="btn btn-sm btn-success">Approve</button>
@@ -191,7 +191,7 @@
       </div>
 
       <div class="table-responsive">
-        <table class="table table-sm align-middle mb-0">
+        <table class="table table-sm align-middle mb-0 mobile-table-cards">
           <thead class="table-light">
             <tr>
               <th>Patient</th>
@@ -219,21 +219,21 @@
                       ? "info"
                       : "secondary"; %>
                 <tr>
-                  <td>
+                  <td data-label="Patient">
                     <div class="fw-semibold"><%= patientName %></div>
                     <div class="text-muted small"><%= record.patient_email || "-" %></div>
                   </td>
-                  <td>
+                  <td data-label="Bed">
                     <div><%= record.bed_assigned || "Not assigned" %></div>
                     <div class="text-muted small text-uppercase"><%= record.bed_category %></div>
                   </td>
-                  <td>
+                  <td data-label="Capacity">
                     <div>Total: <%= record.total_beds %></div>
                     <div class="text-muted small">Occupied: <%= record.occupied_beds %> | Free: <%= Math.max(record.total_beds - record.occupied_beds, 0) %></div>
                   </td>
-                  <td><span class="badge text-bg-<%= statusClass %> text-uppercase"><%= record.status %></span></td>
-                  <td><%= record.admission_date %></td>
-                  <td>
+                  <td data-label="Status"><span class="badge text-bg-<%= statusClass %> text-uppercase"><%= record.status %></span></td>
+                  <td data-label="Date"><%= record.admission_date %></td>
+                  <td data-label="Source">
                     <% if (record.source_request_id) { %>
                       From doctor request
                     <% } else { %>

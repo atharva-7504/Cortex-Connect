@@ -190,7 +190,7 @@
       </div>
 
       <div class="table-responsive">
-        <table class="table table-sm align-middle mb-0">
+        <table class="table table-sm align-middle mb-0 mobile-table-cards">
           <thead class="table-light">
             <tr>
               <th>Patient</th>
@@ -215,19 +215,19 @@
                 <% const requestStatus = String(record.status || "pending").toLowerCase(); %>
                 <% const requestBadgeClass = requestStatus === "approved" ? "success" : requestStatus === "rejected" ? "danger" : "warning"; %>
                 <tr>
-                  <td>
+                  <td data-label="Patient">
                     <div class="fw-semibold"><%= patientName %></div>
                     <div class="text-muted small"><%= record.patient_email || appointment?.email || "-" %></div>
                   </td>
-                  <td><%= record.bed_category || "-" %></td>
-                  <td><%= record.urgency_level || "-" %></td>
-                  <td><span class="badge text-bg-<%= requestBadgeClass %> text-uppercase"><%= record.status || "pending" %></span></td>
-                  <td>
+                  <td data-label="Category"><%= record.bed_category || "-" %></td>
+                  <td data-label="Urgency"><%= record.urgency_level || "-" %></td>
+                  <td data-label="Status"><span class="badge text-bg-<%= requestBadgeClass %> text-uppercase"><%= record.status || "pending" %></span></td>
+                  <td data-label="Appointment">
                     <div><%= appointment ? appointment.appointment_date : "-" %></div>
                     <div class="text-muted small"><%= appointment ? appointment.time_slot : "-" %></div>
                   </td>
-                  <td><%= new Date(record.createdAt).toLocaleString() %></td>
-                  <td><%= record.resolved_at ? new Date(record.resolved_at).toLocaleString() : "-" %></td>
+                  <td data-label="Requested"><%= new Date(record.createdAt).toLocaleString() %></td>
+                  <td data-label="Resolved"><%= record.resolved_at ? new Date(record.resolved_at).toLocaleString() : "-" %></td>
                 </tr>
               <% }) %>
             <% } %>

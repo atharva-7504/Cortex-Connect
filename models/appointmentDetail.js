@@ -125,7 +125,12 @@ const appointmentDetailSchema = new mongoose.Schema(
 
 appointmentDetailSchema.index(
   { doctor_id: 1, appointment_date: 1, time_slot: 1 },
-  { unique: true }
+  {
+    unique: true,
+    partialFilterExpression: {
+      status: { $in: ["Pending", "Accepted"] }
+    }
+  }
 );
 
 module.exports = mongoose.model("AppointmentDetail", appointmentDetailSchema);

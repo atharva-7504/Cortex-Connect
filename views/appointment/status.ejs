@@ -70,7 +70,7 @@
   <div class="card">
     <div class="card-body">
       <div class="table-responsive">
-        <table class="table table-striped table-hover align-middle mb-0">
+        <table class="table table-striped table-hover align-middle mb-0 mobile-table-cards">
           <thead class="table-light">
             <tr>
               <% if (mode === "doctor") { %>
@@ -121,25 +121,25 @@
                 <% const statusClass = record.status === "Accepted" ? "success" : record.status === "Rejected" ? "danger" : "warning"; %>
                 <tr>
                   <% if (mode === "doctor") { %>
-                    <td>
+                    <td data-label="Patient">
                       <div class="fw-semibold"><%= patientUser ? patientUser.first_name + " " + patientUser.last_name : record.full_name || "-" %></div>
                       <div class="text-muted small"><%= patientUser ? patientUser.email : record.email || "-" %></div>
                     </td>
-                    <td><%= record.phone || "-" %></td>
-                    <td><%= record.symptoms || "-" %></td>
-                    <td><%= record.appointment_date || "-" %></td>
-                    <td><%= record.time_slot || "-" %></td>
-                    <td>
+                    <td data-label="Contact"><%= record.phone || "-" %></td>
+                    <td data-label="Symptoms"><%= record.symptoms || "-" %></td>
+                    <td data-label="Date"><%= record.appointment_date || "-" %></td>
+                    <td data-label="Time"><%= record.time_slot || "-" %></td>
+                    <td data-label="Urgency">
                       <span class="badge text-bg-<%= record.urgency_level === 'high' ? 'danger' : record.urgency_level === 'medium' ? 'warning' : 'success' %>">
                         <%= record.urgency_level || "-" %>
                       </span>
                     </td>
-                    <td>
+                    <td data-label="Status">
                       <span class="badge text-bg-<%= statusClass %> text-uppercase">
                         <%= record.status === 'Accepted' ? 'Approved' : record.status %>
                       </span>
                     </td>
-                    <td>
+                    <td data-label="Actions">
                       <% if (record.status === "Pending") { %>
                         <div class="d-flex flex-wrap gap-2">
                           <form action="/check-appointments/<%= record._id %>/accept" method="POST">
@@ -154,33 +154,33 @@
                       <% } %>
                     </td>
                   <% } else if (mode === "admin") { %>
-                    <td><%= record.user_id && record.user_id._id ? String(record.user_id._id) : record.user_id ? String(record.user_id) : "-" %></td>
-                    <td>
+                    <td data-label="User ID"><%= record.user_id && record.user_id._id ? String(record.user_id._id) : record.user_id ? String(record.user_id) : "-" %></td>
+                    <td data-label="Patient">
                       <div class="fw-semibold"><%= patientUser ? patientUser.first_name + " " + patientUser.last_name : record.full_name || "-" %></div>
                       <div class="text-muted small"><%= patientUser ? patientUser.email : record.email || "-" %> | <%= record.phone || "-" %></div>
                       <div class="text-muted small">Patient type: <%= record.patient_type === "new" ? "New" : "Existing" %></div>
                     </td>
-                    <td><%= doctorUser ? doctorUser.name : record.doctor_name || "-" %></td>
-                    <td><%= record.specialization === "general_physician" ? "General Physician" : record.specialization === "orthopedic" ? "Orthopedic" : "Cardiology" %></td>
-                    <td>
+                    <td data-label="Doctor"><%= doctorUser ? doctorUser.name : record.doctor_name || "-" %></td>
+                    <td data-label="Specialist"><%= record.specialization === "general_physician" ? "General Physician" : record.specialization === "orthopedic" ? "Orthopedic" : "Cardiology" %></td>
+                    <td data-label="Date">
                       <div><%= record.appointment_date || "-" %></div>
                       <div class="text-muted small"><%= record.previous_visit ? "Previous visit" : "First visit" %></div>
                     </td>
-                    <td><%= record.time_slot || "-" %></td>
-                    <td>
+                    <td data-label="Time"><%= record.time_slot || "-" %></td>
+                    <td data-label="Urgency">
                       <span class="badge text-bg-<%= record.urgency_level === 'high' ? 'danger' : record.urgency_level === 'medium' ? 'warning' : 'success' %>">
                         <%= record.urgency_level %>
                       </span>
                     </td>
-                    <td>
+                    <td data-label="Status">
                       <span class="badge text-bg-<%= statusClass %> text-uppercase">
                         <%= record.status === 'Accepted' ? 'Approved' : record.status %>
                       </span>
                     </td>
-                    <td>
+                    <td data-label="Receipt">
                       <a href="<%= receiptUrl %>" class="btn btn-sm btn-outline-secondary">Download</a>
                     </td>
-                    <td>
+                    <td data-label="Actions">
                       <% if (record.status === "Pending") { %>
                         <div class="d-flex flex-wrap gap-2">
                           <form action="/check-appointments/<%= record._id %>/accept" method="POST">
@@ -194,28 +194,28 @@
                         <span class="text-muted small">No action</span>
                       <% } %>
                     </td>
-                    <td><%= new Date(record.createdAt).toLocaleString() %></td>
+                    <td data-label="Submitted"><%= new Date(record.createdAt).toLocaleString() %></td>
                   <% } else { %>
-                    <td><%= doctorUser ? doctorUser.name : record.doctor_name || "-" %></td>
-                    <td>
+                    <td data-label="Doctor"><%= doctorUser ? doctorUser.name : record.doctor_name || "-" %></td>
+                    <td data-label="Specialist">
                       <%= record.specialization === "general_physician" ? "General Physician" : record.specialization === "orthopedic" ? "Orthopedic" : "Cardiology" %>
                     </td>
-                    <td><%= record.appointment_date || "-" %></td>
-                    <td><%= record.time_slot || "-" %></td>
-                    <td>
+                    <td data-label="Date"><%= record.appointment_date || "-" %></td>
+                    <td data-label="Time"><%= record.time_slot || "-" %></td>
+                    <td data-label="Urgency">
                       <span class="badge text-bg-<%= record.urgency_level === 'high' ? 'danger' : record.urgency_level === 'medium' ? 'warning' : 'success' %>">
                         <%= record.urgency_level %>
                       </span>
                     </td>
-                    <td>
+                    <td data-label="Status">
                       <span class="badge text-bg-<%= statusClass %> text-uppercase">
                         <%= record.status === 'Accepted' ? 'Approved' : record.status %>
                       </span>
                     </td>
-                    <td>
+                    <td data-label="Receipt">
                       <a href="<%= receiptUrl %>" class="btn btn-sm btn-outline-secondary">Download</a>
                     </td>
-                    <td><%= new Date(record.createdAt).toLocaleString() %></td>
+                    <td data-label="Submitted"><%= new Date(record.createdAt).toLocaleString() %></td>
                   <% } %>
                 </tr>
               <% }) %>

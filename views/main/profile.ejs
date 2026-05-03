@@ -104,7 +104,7 @@
           </div>
 
           <div class="table-responsive">
-            <table class="table table-sm align-middle mb-0">
+            <table class="table table-sm align-middle mb-0 mobile-table-cards">
               <thead class="table-light">
                 <tr>
                   <% if (profile.role === "doctor") { %>
@@ -126,26 +126,26 @@
               <tbody>
                 <% if (!recentAppointments || recentAppointments.length === 0) { %>
                   <tr>
-                    <td colspan="<%= profile.role === 'doctor' || profile.role === 'admin' ? 4 : 4 %>" class="text-center py-4 text-muted">No appointments found.</td>
+                    <td colspan="4" class="text-center py-4 text-muted">No appointments found.</td>
                   </tr>
                 <% } else { %>
                   <% recentAppointments.forEach((record) => { %>
                     <% const patientUser = record.user_id && record.user_id.first_name ? record.user_id : null; %>
                     <tr>
                       <% if (profile.role === "doctor") { %>
-                        <td><%= patientUser ? patientUser.first_name + " " + patientUser.last_name : record.full_name || "-" %></td>
-                        <td><%= patientUser ? patientUser.email : record.email || "-" %></td>
-                        <td><%= record.appointment_date || "-" %></td>
+                        <td data-label="Patient"><%= patientUser ? patientUser.first_name + " " + patientUser.last_name : record.full_name || "-" %></td>
+                        <td data-label="Email"><%= patientUser ? patientUser.email : record.email || "-" %></td>
+                        <td data-label="Date"><%= record.appointment_date || "-" %></td>
                       <% } else if (profile.role === "admin") { %>
-                        <td><%= patientUser ? patientUser.first_name + " " + patientUser.last_name : record.full_name || "-" %></td>
-                        <td><%= record.doctor_id && record.doctor_id.name ? record.doctor_id.name : record.doctor_name || "-" %></td>
-                        <td><%= record.appointment_date || "-" %></td>
+                        <td data-label="Patient"><%= patientUser ? patientUser.first_name + " " + patientUser.last_name : record.full_name || "-" %></td>
+                        <td data-label="Doctor"><%= record.doctor_id && record.doctor_id.name ? record.doctor_id.name : record.doctor_name || "-" %></td>
+                        <td data-label="Date"><%= record.appointment_date || "-" %></td>
                       <% } else { %>
-                        <td><%= record.appointment_date || record.createdAt %></td>
-                        <td><%= record.doctor_id && record.doctor_id.name ? record.doctor_id.name : record.doctor_name || "-" %></td>
-                        <td><%= record.time_slot || "-" %></td>
+                        <td data-label="Date"><%= record.appointment_date || record.createdAt %></td>
+                        <td data-label="Doctor"><%= record.doctor_id && record.doctor_id.name ? record.doctor_id.name : record.doctor_name || "-" %></td>
+                        <td data-label="Time"><%= record.time_slot || "-" %></td>
                       <% } %>
-                      <td><span class="badge text-bg-<%= record.status === 'Accepted' ? 'success' : record.status === 'Rejected' ? 'danger' : 'warning' %>"><%= record.status === 'Accepted' ? 'Approved' : record.status %></span></td>
+                      <td data-label="Status"><span class="badge text-bg-<%= record.status === 'Accepted' ? 'success' : record.status === 'Rejected' ? 'danger' : 'warning' %>"><%= record.status === 'Accepted' ? 'Approved' : record.status %></span></td>
                     </tr>
                   <% }) %>
                 <% } %>

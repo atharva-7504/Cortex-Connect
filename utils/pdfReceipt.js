@@ -66,28 +66,41 @@ const buildPdfContent = (documentData) => {
   const commands = [];
   let cursorY = PAGE_HEIGHT - 56;
 
-  const writeLine = (text, { font = "F1", size = 12, leading = 16, x = LEFT_MARGIN } = {}) => {
+  const writeLine = (text, { font = "F1", size = 12, leading = 16, x = LEFT_MARGIN, color = "0.10 0.18 0.28" } = {}) => {
     if (cursorY < 60) {
       return;
     }
 
-    commands.push(`BT /${font} ${size} Tf 1 0 0 1 ${x} ${cursorY} Tm (${escapePdfText(text)}) Tj ET`);
+    commands.push(`${color} rg BT /${font} ${size} Tf 1 0 0 1 ${x} ${cursorY} Tm (${escapePdfText(text)}) Tj ET`);
     cursorY -= leading;
   };
 
-  const drawSeparator = () => {
+  const drawSeparator = (color = "0.82 0.88 0.94") => {
     cursorY -= 4;
-    commands.push(`0.78 0.82 0.88 RG ${LEFT_MARGIN} ${cursorY} m ${PAGE_WIDTH - LEFT_MARGIN} ${cursorY} l S`);
+    commands.push(`${color} RG ${LEFT_MARGIN} ${cursorY} m ${PAGE_WIDTH - LEFT_MARGIN} ${cursorY} l S`);
     cursorY -= 16;
   };
 
-  writeLine(documentData.brand || "CortexConnect", { font: "F2", size: 18, leading: 24 });
-  writeLine(documentData.title || "Appointment Receipt", { font: "F2", size: 15, leading: 22 });
+  const drawFilledRect = (x, y, width, height, color) => {
+    commands.push(`${color} rg ${x} ${y} ${width} ${height} re f`);
+  };
+
+  const drawStrokedRect = (x, y, width, height, color = "0.82 0.88 0.94") => {
+    commands.push(`${color} RG ${x} ${y} ${width} ${height} re S`);
+  };
+
+  drawFilledRect(0, PAGE_HEIGHT - 112, PAGE_WIDTH, 112, "0.93 0.98 1.00");
+  drawFilledRect(0, PAGE_HEIGHT - 112, 8, 112, "0.00 0.63 0.91");
+  drawFilledRect(LEFT_MARGIN, PAGE_HEIGHT - 86, 42, 42, "0.00 0.63 0.91");
+
+  writeLine(documentData.brand || "CortexConnect", { font: "F2", size: 20, leading: 24, x: 104, color: "0.03 0.29 0.42" });
+  writeLine(documentData.title || "Appointment Receipt", { font: "F2", size: 15, leading: 20, x: 104, color: "0.10 0.18 0.28" });
   if (documentData.subtitle) {
-    writeLine(documentData.subtitle, { font: "F1", size: 10, leading: 15 });
+    writeLine(documentData.subtitle, { font: "F1", size: 10, leading: 15, x: 104, color: "0.34 0.42 0.52" });
   }
 
-  drawSeparator();
+  cursorY = PAGE_HEIGHT - 142;
+  drawStrokedRect(LEFT_MARGIN, cursorY - 62, PAGE_WIDTH - (LEFT_MARGIN * 2), 78);
 
   writeLine(`Reference No: ${documentData.referenceNumber || "-"}`, { font: "F2", size: 12, leading: 18 });
   writeLine(`Status: ${documentData.statusLabel || "-"}`, { font: "F1", size: 11, leading: 16 });
@@ -102,7 +115,8 @@ const buildPdfContent = (documentData) => {
       cursorY -= 6;
     }
 
-    writeLine(section.heading || "Section", { font: "F2", size: 12, leading: 18 });
+    drawFilledRect(LEFT_MARGIN, cursorY - 4, PAGE_WIDTH - (LEFT_MARGIN * 2), 20, "0.96 0.98 1.00");
+    writeLine(section.heading || "Section", { font: "F2", size: 12, leading: 22, color: "0.03 0.29 0.42" });
 
     (section.fields || []).forEach((field) => {
       const label = String(field.label || "").trim();
@@ -118,7 +132,7 @@ const buildPdfContent = (documentData) => {
 
   if (documentData.footer) {
     wrapText(documentData.footer, 78).forEach((line) => {
-      writeLine(line, { font: "F1", size: 10, leading: 14 });
+      writeLine(line, { font: "F1", size: 10, leading: 14, color: "0.34 0.42 0.52" });
     });
   }
 
@@ -161,9 +175,14 @@ const buildAppointmentReceiptPdf = (documentData) => {
   return buildPdfBuffer(content);
 };
 
-const buildAppointmentReceiptFilename = (referenceNumber) => {
+const buildAppointmentReceiptFilename = (referenceNumber, patientName) => {
+  const safeName = String(patientName || "patient")
+    .trim()
+    .replace(/[^A-Za-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 60) || "patient";
   const safeRef = String(referenceNumber || "appointment").replace(/[^A-Za-z0-9_-]/g, "_");
-  return `${safeRef}.pdf`;
+  return `${safeName}_${safeRef}.pdf`;
 };
 
 module.exports = {

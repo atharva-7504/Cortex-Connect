@@ -208,7 +208,7 @@
       </form>
 
       <div class="table-responsive">
-        <table class="table table-sm align-middle mb-0">
+        <table class="table table-sm align-middle mb-0 mobile-table-cards">
           <thead class="table-light">
             <tr>
               <th>Staff</th>
@@ -230,17 +230,17 @@
               <% rosterRows.forEach((record) => { %>
                 <% const loadDoctorId = record.doctor_id ? String(record.doctor_id) : ""; %>
                 <tr>
-                  <td>
+                  <td data-label="Staff">
                     <div class="fw-semibold"><%= record.staff_name %></div>
                     <div class="text-muted small"><%= record.specialization_label %></div>
                   </td>
-                  <td><%= record.role_label %></td>
-                  <td><%= record.department %></td>
-                  <td><span class="badge text-bg-<%= record.active ? 'success' : 'secondary' %> text-uppercase"><%= record.status_label %></span></td>
-                  <td><%= record.hours_label %></td>
-                  <td><%= record.availability_label %></td>
-                  <td><%= record.latestDate ? new Date(record.latestDate).toLocaleString() : "-" %></td>
-                  <td class="text-end">
+                  <td data-label="Role"><%= record.role_label %></td>
+                  <td data-label="Department"><%= record.department %></td>
+                  <td data-label="Status"><span class="badge text-bg-<%= record.active ? 'success' : 'secondary' %> text-uppercase"><%= record.status_label %></span></td>
+                  <td data-label="Hours"><%= record.hours_label %></td>
+                  <td data-label="Availability"><%= record.availability_label %></td>
+                  <td data-label="Updated"><%= record.latestDate ? new Date(record.latestDate).toLocaleString() : "-" %></td>
+                  <td data-label="Action" class="text-end">
                     <% if (loadDoctorId) { %>
                       <a href="/staff-records?doctor_id=<%= loadDoctorId %>&search=<%= encodeURIComponent(typeof search !== 'undefined' ? search : '') %>" class="btn btn-outline-primary btn-sm">Load</a>
                     <% } else { %>
