@@ -19,6 +19,7 @@ const initializePassport = require("./config/passport");
 const { createAuthMiddleware } = require("./middlewares/auth");
 const { seedBedAdmissions } = require("./init/bed_admissions_index");
 const { buildAppointmentReceiptPdf, buildAppointmentReceiptFilename } = require("./utils/pdfReceipt");
+const createControllers = require("./controllers");
 const {
   objectIdPattern,
   signupSchema,
@@ -994,6 +995,102 @@ const ensureAppointmentSlotIndex = async () => {
   );
 };
 
+const controllerDeps = {
+  auth: {
+    passport,
+    googleConfigured: false,
+    ensureAuthenticated,
+    ensureRole
+  },
+  helpers: {
+    getUserFullName,
+    normalizeRole,
+    normalizeFlashType,
+    addFlash,
+    flashError,
+    flashSuccess,
+    flashWarning,
+    redirectWithFlash,
+    getMongooseErrorMessage,
+    getValidationMessage,
+    toSafeNumber,
+    getTodayDateString,
+    parseTimeToMinutes,
+    formatMinutesToTimeLabel,
+    buildTimeSlots,
+    getAppointmentStatusLabel,
+    getAppointmentStatusBadgeClass,
+    getUrgencyLabel,
+    buildAppointmentCode,
+    getStartOfWeek,
+    buildWeeklyDoctorSchedule,
+    createAppointmentNotification,
+    sendAppointmentDecisionNotifications,
+    buildAppointmentReceiptDocument,
+    buildBedSummary,
+    buildStaffSummary,
+    normalizeBedCategory,
+    normalizeSearchTerm,
+    buildSearchText,
+    getSpecializationLabel,
+    getStaffStatusLabel,
+    getRequestStatusLabel,
+    getBedCategoryPrefix,
+    getBedCategoryLabel,
+    buildBedAssignmentLabel,
+    buildBedRequestSummary,
+    buildDoctorRosterRows,
+    buildBedRequestFormData,
+    buildDoctorRosterFormData,
+    getLatestBedAdmissionSnapshot,
+    buildAdmissionPayloadFromRequest,
+    loadDoctorBedRequestContext,
+    findUserById,
+    findDoctorByUserId,
+    canReviewAppointment,
+    buildBedAdmissionFormData,
+    getWeekdayName,
+    appointmentBlockingStatuses,
+    getAvailableSlots,
+    loadStaffRosterContext,
+    isDuplicateAppointmentSlotError
+  },
+  schemas: {
+    objectIdPattern,
+    signupSchema,
+    loginSchema,
+    appointmentSchema,
+    bedAdmissionSchema,
+    bedRequestSchema,
+    doctorRosterSchema
+  },
+  options: {
+    authRoleOptions,
+    specializationOptions,
+    specializationLabels,
+    weekdayOptions,
+    urgencyOptions,
+    roleLabels,
+    bedCategoryLabels,
+    bedCategoryPrefixes,
+    staffRoleLabels,
+    staffStatusLabels,
+    requestStatusLabels
+  },
+  services: {
+    buildAppointmentReceiptPdf,
+    buildAppointmentReceiptFilename,
+    seedDoctors,
+    migrateDoctorProfiles,
+    migrateAppointmentReferences,
+    ensureAppointmentSlotIndex,
+    seedBedAdmissions
+  },
+  env: {
+    adminSignupCode
+  }
+};
+
 app.engine("ejs", ejsMate);
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
@@ -1018,18 +1115,16 @@ app.use((req, res, next) => {
 
 const { googleConfigured } = initializePassport(passport, User);
 
-const renderAuthPage = (res, viewName, title, formData = {}, message = "") => {
-  res.render(viewName, {
-    title,
-    authRoleOptions,
-    specializationOptions,
-    weekdayOptions,
-    adminSignupCodeConfigured: Boolean(adminSignupCode),
-    formData,
-    message
-  });
-};
+controllerDeps.auth.googleConfigured = googleConfigured;
+const controllers = createControllers(controllerDeps);
 
+app.use("/", controllers.public);
+app.use("/", controllers.appointment);
+app.use("/", controllers.bed);
+app.use("/", controllers.staff);
+app.use("/", controllers.dashboard);
+
+/*
 app.get("/", async (req, res, next) => {
   try {
     const doctorProfile = req.user?.role === "doctor"
@@ -2656,6 +2751,7 @@ app.get("/reset", async (req, res, next) => {
     next(err);
   }
 });
+*/
 
 app.use((req, res) => {
   res.status(404).render("includes/pagenotfound");
