@@ -6,6 +6,7 @@ const ejsMate = require("ejs-mate");
 const path = require("path");
 const mongoose = require("mongoose");
 const session = require("express-session");
+const { MongoStore } = require("connect-mongo");
 const passport = require("passport");
 
 const User = require("./models/users");
@@ -14,7 +15,7 @@ const AppointmentDetail = require("./models/appointmentDetail");
 const AppointmentNotification = require("./models/appointmentNotification");
 const BedAdmission = require("./models/bedAdmission");
 const BedRequest = require("./models/bedRequest");
-const { connectDatabase } = require("./config/database");
+const { connectDatabase, mongoUri } = require("./config/database");
 const initializePassport = require("./config/passport");
 const { createAuthMiddleware } = require("./middlewares/auth");
 const { seedBedAdmissions } = require("./init/bed_admissions_index");
@@ -32,6 +33,21 @@ const {
 
 const app = express();
 const port = process.env.PORT || 3000;
+const isProduction = process.env.NODE_ENV === "production";
+const sessionMaxAgeMs = 1000 * 60 * 60 * 24 * 7;
+
+const getSessionSecret = () => {
+  const secret = String(process.env.SESSION_SECRET || "").trim();
+  if (secret) return secret;
+
+  if (isProduction) {
+    throw new Error("SESSION_SECRET is required when NODE_ENV=production.");
+  }
+
+  return "cortexconnect-session";
+};
+
+const sessionSecret = getSessionSecret();
 
 const authRoleOptions = [
   { value: "admin", label: "Admin" },
@@ -1094,13 +1110,51 @@ const controllerDeps = {
 app.engine("ejs", ejsMate);
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
-app.use(express.static(path.join(__dirname, "public")));
+
+app.disable("x-powered-by");
+
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+
+  if (isProduction) {
+    res.setHeader("Strict-Transport-Security", "max-age=15552000; includeSubDomains");
+  }
+
+  next();
+});
+
+app.use(express.static(path.join(__dirname, "public"), {
+  etag: true,
+  immutable: isProduction,
+  maxAge: isProduction ? "7d" : 0
+}));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+
+if (isProduction) {
+  app.set("trust proxy", 1);
+}
+
 app.use(session({
-  secret: process.env.SESSION_SECRET || "cortexconnect-session",
+  name: "cortexconnect.sid",
+  secret: sessionSecret,
   resave: false,
-  saveUninitialized: false
+  saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: mongoUri,
+    collectionName: "sessions",
+    ttl: Math.floor(sessionMaxAgeMs / 1000),
+    touchAfter: 24 * 60 * 60
+  }),
+  cookie: {
+    httpOnly: true,
+    maxAge: sessionMaxAgeMs,
+    sameSite: "lax",
+    secure: isProduction
+  }
 }));
 app.use(passport.initialize());
 app.use(passport.session());

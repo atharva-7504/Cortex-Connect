@@ -1,36 +1,46 @@
 <% layout("layouts/boilerplate") %>
 
-<div class="py-5">
-  <div class="row justify-content-center">
-    <div class="col-lg-7">
-      <div class="card">
-        <div class="card-body p-5">
-          <h1 class="h3 fw-bold mb-2">Login</h1>
-          <p class="text-muted mb-4">Use your username and password to sign in.</p>
+<div class="auth-shell">
+  <div class="auth-visual auth-visual-login">
+    <div class="auth-visual-content">
+      <div class="home-brand-mark">
+        <img src="/assets/logo.png" alt="CortexConnect logo">
+        <span>CortexConnect</span>
+      </div>
+      <h1>Welcome back</h1>
+      <p>Open your hospital workspace with your saved role and 7-day session.</p>
+    </div>
+  </div>
 
-          <% if (message) { %>
-            <div class="alert alert-info"><%= message %></div>
-          <% } %>
-
-          <form action="/login" method="POST">
-            <div class="mb-3">
-              <label class="form-label">Username</label>
-              <input type="text" name="username" class="form-control" value="<%= formData.username || '' %>" required>
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label">Password</label>
-              <input type="password" name="password" class="form-control" required>
-            </div>
-
-            <button type="submit" class="btn btn-primary w-100">Submit Login</button>
-
-            <div class="text-center text-muted my-3">or</div>
-
-            <a href="/auth/google" class="btn btn-outline-danger w-100">Continue with Google</a>
-          </form>
-        </div>
+  <div class="auth-panel">
+    <div class="auth-panel-header">
+      <img src="/assets/logo.png" alt="CortexConnect logo">
+      <div>
+        <h1>Login</h1>
+        <p>Use your username and password to sign in.</p>
       </div>
     </div>
+
+    <% if (message) { %>
+      <div class="alert alert-info"><%= message %></div>
+    <% } %>
+
+    <form action="/login" method="POST">
+      <div class="mb-3">
+        <label class="form-label">Username</label>
+        <input type="text" name="username" class="form-control form-control-lg" value="<%= formData.username || '' %>" required autocomplete="username">
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Password</label>
+        <input type="password" name="password" class="form-control form-control-lg" required autocomplete="current-password">
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-lg w-100">Login</button>
+
+      <div class="auth-divider"><span>or</span></div>
+
+      <a href="/auth/google" class="btn btn-outline-danger btn-lg w-100">Continue with Google</a>
+    </form>
   </div>
 </div>

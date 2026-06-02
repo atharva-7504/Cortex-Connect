@@ -53,16 +53,24 @@
 %>
 
 <div class="dashboard-page">
-  <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
-    <div>
-      <h1 class="h3 fw-bold mb-1">Dashboard</h1>
-      <p class="text-muted mb-0">Operations overview for CortexConnect.</p>
+  <div class="dashboard-hero-card">
+    <div class="dashboard-hero-copy">
+      <div class="dashboard-brand-chip">
+        <img src="/assets/logo.png" alt="CortexConnect logo">
+        <span>CortexConnect Admin</span>
+      </div>
+      <h1>Operations Dashboard</h1>
+      <p>Appointments, beds, staff coverage, and request queues stay connected in one calm command view.</p>
+      <div class="dashboard-toolbar d-flex flex-wrap gap-2">
+        <a href="/check-appointments" class="btn btn-light btn-sm">Appointments</a>
+        <% if (profile && profile.role === "admin") { %>
+          <a href="/bed-admissions" class="btn btn-outline-light btn-sm">Bed Admissions</a>
+          <a href="/staff-records" class="btn btn-outline-light btn-sm">Staff Records</a>
+        <% } %>
+      </div>
     </div>
-    <div class="dashboard-toolbar d-flex flex-wrap gap-2">
-      <a href="/check-appointments" class="btn btn-outline-primary btn-sm">Appointments</a>
-      <% if (profile && profile.role === "admin") { %>
-        <a href="/bed-admissions" class="btn btn-outline-primary btn-sm">Bed Admissions</a>
-      <% } %>
+    <div class="dashboard-hero-media">
+      <img src="/assets/group.jpg" class="media-focus-group" alt="Hospital operations team">
     </div>
   </div>
 

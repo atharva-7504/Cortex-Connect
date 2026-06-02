@@ -6,15 +6,23 @@
 <% const pendingCountValue = typeof pendingAppointmentCount !== "undefined" ? pendingAppointmentCount : assignedRows.filter((record) => String(record.status || "").trim() === "Pending").length; %>
 <% const workloadPerDayValue = typeof workloadPerDay !== "undefined" ? workloadPerDay : (availabilityDays > 0 ? Math.ceil((assignedCountValue || 0) / availabilityDays) : assignedCountValue || 0); %>
 
-<div class="py-4 py-lg-5">
-  <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
-    <div>
-      <h1 class="h3 fw-bold mb-2">Doctor Dashboard</h1>
-      <p class="text-muted mb-0">Review assigned appointments, track workload, and keep the schedule moving.</p>
+<div class="dashboard-page py-4 py-lg-5">
+  <div class="dashboard-hero-card dashboard-hero-card-doctor">
+    <div class="dashboard-hero-copy">
+      <div class="dashboard-brand-chip">
+        <img src="/assets/logo.png" alt="CortexConnect logo">
+        <span>CortexConnect Doctor</span>
+      </div>
+      <h1>Doctor Dashboard</h1>
+      <p>Review assigned appointments, track workload, and keep care requests moving with less friction.</p>
+      <div class="d-flex flex-wrap gap-2">
+        <a href="/check-appointments" class="btn btn-light btn-sm">Review Queue</a>
+        <a href="/bed-requests" class="btn btn-outline-light btn-sm">Bed Requests</a>
+        <a href="/profile" class="btn btn-outline-light btn-sm">Profile</a>
+      </div>
     </div>
-    <div class="d-flex flex-wrap gap-2">
-      <a href="/check-appointments" class="btn btn-outline-primary btn-sm">Review Queue</a>
-      <a href="/profile" class="btn btn-outline-secondary btn-sm">Profile</a>
+    <div class="dashboard-hero-media">
+      <img src="/assets/doctor.jpeg" class="media-focus-doctor" alt="Doctor reviewing appointments">
     </div>
   </div>
 

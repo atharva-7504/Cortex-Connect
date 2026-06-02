@@ -1,69 +1,158 @@
 <% layout("layouts/boilerplate") %>
 
-<div class="py-5">
-  <div class="card">
-    <div class="card-body p-4 p-md-5">
-      <div class="row align-items-center g-4">
-        <div class="col-lg-8">
-          <h1 class="display-6 fw-bold mb-3">CortexConnect</h1>
-          <p class="lead text-muted mb-4">
-            Simple appointment booking and review for patients, doctors, and admins.
-          </p>
+<%
+  const isSignedIn = Boolean(profile);
+  const isStaff = isSignedIn && (profile.role === "admin" || profile.role === "doctor");
+  const isAdmin = isSignedIn && profile.role === "admin";
+  const isDoctor = isSignedIn && profile.role === "doctor";
+%>
 
-          <% if (message) { %>
-            <div class="alert alert-info"><%= message %></div>
+<section class="home-hero home-hero-compact">
+  <div class="home-hero-copy">
+    
+    <h1>CortexConnect</h1>
+    <p>
+      A clean hospital workflow hub for appointments, doctors, beds, and staff decisions.
+    </p>
+
+    <div class="home-chips" aria-label="Core areas">
+      <span>Patients</span>
+      <span>Doctors</span>
+      <span>Appointments</span>
+    </div>
+
+    <% if (message) { %>
+      <div class="alert alert-info home-alert"><%= message %></div>
+    <% } %>
+
+    <div class="home-actions">
+      <% if (isSignedIn) { %>
+        <a href="/profile" class="btn btn-primary btn-lg">Open Profile</a>
+        <% if (isStaff) { %>
+          <a href="/dashboard" class="btn btn-outline-primary btn-lg">Dashboard</a>
+          <a href="/check-appointments" class="btn btn-outline-primary btn-lg">Appointments</a>
+          <% if (isAdmin) { %>
+            <a href="/bed-admissions" class="btn btn-outline-primary btn-lg">Bed Admissions</a>
+            <a href="/staff-records" class="btn btn-outline-primary btn-lg">Staff Records</a>
           <% } %>
-
-          <div class="d-flex flex-wrap gap-2">
-            <% if (profile) { %>
-              <a href="/profile" class="btn btn-primary">Open Profile</a>
-              <% if (profile.role === "admin" || profile.role === "doctor") { %>
-                <a href="/dashboard" class="btn btn-outline-primary">Dashboard</a>
-                <a href="/check-appointments" class="btn btn-outline-secondary">Check Appointments</a>
-              <% } else { %>
-                <a href="/appointment" class="btn btn-outline-primary">Book Appointment</a>
-                <a href="/check-status" class="btn btn-outline-secondary">Check Status</a>
-              <% } %>
-            <% } else { %>
-              <a href="/login" class="btn btn-primary">Login</a>
-              <a href="/signup" class="btn btn-outline-primary">Signup</a>
-            <% } %>
-          </div>
-
-          <% if (profile && profile.role === "doctor" && doctorProfile) { %>
-            <div class="border rounded-3 p-3 mt-4 bg-white">
-              <div class="text-uppercase text-muted small mb-2">Doctor Profile</div>
-              <div class="row g-3">
-                <div class="col-md-6">
-                  <div class="text-muted small">Specialization</div>
-                  <div class="fw-semibold"><%= doctorProfile.specialization === "general_physician" ? "General Physician" : doctorProfile.specialization === "orthopedic" ? "Orthopedic" : "Cardiology" %></div>
-                </div>
-                <div class="col-md-6">
-                  <div class="text-muted small">Department</div>
-                  <div class="fw-semibold"><%= doctorProfile.department || "-" %></div>
-                </div>
-                <div class="col-md-6">
-                  <div class="text-muted small">Hospital Hours</div>
-                  <div class="fw-semibold"><%= doctorProfile.hospital_start_time || "-" %> to <%= doctorProfile.hospital_end_time || "-" %></div>
-                </div>
-                <div class="col-md-6">
-                  <div class="text-muted small">Availability Days</div>
-                  <div class="fw-semibold"><%= (doctorProfile.availability_days || []).join(", ") || "-" %></div>
-                </div>
-              </div>
-            </div>
+          <% if (isDoctor) { %>
+            <a href="/bed-requests" class="btn btn-outline-primary btn-lg">Bed Requests</a>
           <% } %>
-        </div>
-
-        <div class="col-lg-4">
-          <div class="border rounded-3 p-4 bg-light">
-            <div class="text-uppercase text-muted small mb-2">Welcome</div>
-            <p class="mb-0 text-muted">
-              Use the profile menu on the right to view your account details and role-based pages.
-            </p>
-          </div>
-        </div>
-      </div>
+        <% } else { %>
+          <a href="/appointment" class="btn btn-outline-primary btn-lg">Book Appointment</a>
+          <a href="/check-status" class="btn btn-outline-primary btn-lg">Check Status</a>
+        <% } %>
+      <% } else { %>
+        <a href="/login" class="btn btn-primary btn-lg">Login</a>
+        <a href="/signup" class="btn btn-outline-primary btn-lg">Create Account</a>
+      <% } %>
     </div>
   </div>
-</div>
+
+  <div class="home-hero-slider">
+    <div id="homeCareCarousel" class="carousel slide carousel-fade home-hero-carousel" data-bs-ride="carousel" data-bs-interval="3500">
+      <div class="carousel-indicators">
+        <button type="button" data-bs-target="#homeCareCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Hospital team"></button>
+        <button type="button" data-bs-target="#homeCareCarousel" data-bs-slide-to="1" aria-label="Doctor workflow"></button>
+        <button type="button" data-bs-target="#homeCareCarousel" data-bs-slide-to="2" aria-label="Appointment planning"></button>
+        <button type="button" data-bs-target="#homeCareCarousel" data-bs-slide-to="3" aria-label="Patient care"></button>
+      </div>
+      <div class="carousel-inner">
+        <div class="carousel-item active">
+          <img src="/assets/group.jpg" class="d-block w-100 media-focus-group" alt="Hospital team collaborating">
+        </div>
+        <div class="carousel-item">
+          <img src="/assets/doctor.jpeg" class="d-block w-100 media-focus-doctor" alt="Doctor reviewing patient care">
+        </div>
+        <div class="carousel-item">
+          <img src="/assets/appointment.jpeg" class="d-block w-100 media-focus-appointment" alt="Appointment planning desk">
+        </div>
+        <div class="carousel-item">
+          <img src="/assets/patient1.jpeg" class="d-block w-100 media-focus-patient" alt="Patient support">
+        </div>
+      </div>
+      <button class="carousel-control-prev" type="button" data-bs-target="#homeCareCarousel" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Previous</span>
+      </button>
+      <button class="carousel-control-next" type="button" data-bs-target="#homeCareCarousel" data-bs-slide="next">
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Next</span>
+      </button>
+    </div>
+  </div>
+</section>
+
+<section class="home-benefits">
+  <div class="section-heading">
+    <div class="section-kicker">
+      <img src="/assets/logo.png" alt="CortexConnect logo">
+      Benefits
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-md-6 col-xl-3">
+      <article class="benefit-card">
+        <img src="/assets/patient1.jpeg" class="media-focus-patient" alt="Patient support">
+        <div class="benefit-card-body">
+          <span>Patients</span>
+          <h3>Book and track care</h3>
+          <p>Request appointments, follow approval status, and keep the visit details in one place.</p>
+        </div>
+      </article>
+    </div>
+    <div class="col-md-6 col-xl-3">
+      <article class="benefit-card">
+        <img src="/assets/doctor.jpeg" class="media-focus-doctor" alt="Doctor dashboard">
+        <div class="benefit-card-body">
+          <span>Doctors</span>
+          <h3>Review faster</h3>
+          <p>See the assigned queue, reply to requests, and keep your day organized.</p>
+        </div>
+      </article>
+    </div>
+    <div class="col-md-6 col-xl-3">
+      <article class="benefit-card">
+        <img src="/assets/group.jpg" class="media-focus-group" alt="Hospital team">
+        <div class="benefit-card-body">
+          <span>Teams</span>
+          <h3>Stay aligned</h3>
+          <p>Shared dashboards and role-aware navigation keep the workflow easy to scan.</p>
+        </div>
+      </article>
+    </div>
+    <div class="col-md-6 col-xl-3">
+      <article class="benefit-card">
+        <img src="/assets/appointment.jpeg" class="media-focus-appointment" alt="Appointment planning">
+        <div class="benefit-card-body">
+          <span>Appointments</span>
+          <h3>Clear scheduling</h3>
+          <p>Calendar-friendly booking and quick status checks reduce back-and-forth.</p>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="home-strip">
+  <div class="section-kicker">
+    <img src="/assets/logo.png" alt="CortexConnect logo">
+    Resource Flow
+  </div>
+  <h2>Designed for calm, fast hospital coordination</h2>
+  <div class="home-metric-grid">
+    <div>
+      <strong>7 day</strong>
+      <span>secure login sessions</span>
+    </div>
+    <div>
+      <strong>Role based</strong>
+      <span>navigation and access</span>
+    </div>
+    <div>
+      <strong>Live</strong>
+      <span>MongoDB-backed session storage</span>
+    </div>
+  </div>
+</section>

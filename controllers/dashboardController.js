@@ -23,9 +23,12 @@ module.exports = function createDashboardController(deps = {}) {
     findDoctorByUserId,
     buildWeeklyDoctorSchedule,
     buildBedSummary,
-    loadStaffRosterContext,
-    roleLabels
+    loadStaffRosterContext
   } = helpers;
+
+  const {
+    roleLabels = {}
+  } = options;
 
   router.get("/dashboard", ensureRole("admin", "doctor"), async (req, res, next) => {
     try {

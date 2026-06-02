@@ -1,8 +1,13 @@
-<nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
+<nav class="navbar navbar-expand-lg app-navbar">
   <div class="container-fluid">
-    <a class="navbar-brand fw-bold d-inline-flex align-items-center gap-2" href="/">
-      <img src="/assets/logo.png" alt="CortexConnect logo" class="site-logo">
-      <span>CortexConnect</span>
+    <a class="navbar-brand brand-lockup" href="/">
+      <span class="brand-logo-frame">
+        <img src="/assets/logo.png" alt="CortexConnect logo" class="site-logo">
+      </span>
+      <span class="brand-copy">
+        <span class="brand-name">CortexConnect</span>
+        <span class="brand-subtitle">Hospital Resource Management</span>
+      </span>
     </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
@@ -15,6 +20,10 @@
             <a class="nav-link" href="/check-appointments">Check Appointments</a>
             <% if (currentUser.role === "admin") { %>
               <a class="nav-link" href="/bed-admissions">Bed Admissions</a>
+              <a class="nav-link" href="/staff-records">Staff Records</a>
+            <% } %>
+            <% if (currentUser.role === "doctor") { %>
+              <a class="nav-link" href="/bed-requests">Bed Requests</a>
             <% } %>
           <% } else { %>
             <a class="nav-link" href="/appointment">Appointment</a>
@@ -39,6 +48,10 @@
                 <li><a class="dropdown-item" href="/check-appointments">Check Appointments</a></li>
                 <% if (currentUser.role === "admin") { %>
                   <li><a class="dropdown-item" href="/bed-admissions">Bed Admissions</a></li>
+                  <li><a class="dropdown-item" href="/staff-records">Staff Records</a></li>
+                <% } %>
+                <% if (currentUser.role === "doctor") { %>
+                  <li><a class="dropdown-item" href="/bed-requests">Bed Requests</a></li>
                 <% } %>
               <% } else { %>
                 <li><a class="dropdown-item" href="/appointment">Appointment</a></li>

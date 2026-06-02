@@ -3,136 +3,146 @@
 <% const selectedRole = formData.role || "user"; %>
 <% const selectedAvailabilityDays = Array.isArray(formData.availability_days) ? formData.availability_days : (formData.availability_days ? [formData.availability_days] : []); %>
 
-<div class="py-5">
-  <div class="row justify-content-center">
-    <div class="col-lg-7">
-      <div class="card">
-        <div class="card-body p-5">
-          <h1 class="h3 fw-bold mb-2">Signup</h1>
-          <p class="text-muted mb-4">Create a user, doctor, or admin account.</p>
+<div class="auth-shell auth-shell-wide">
+  <div class="auth-visual auth-visual-signup">
+    <div class="auth-visual-content">
+      <div class="home-brand-mark">
+        <img src="/assets/logo.png" alt="CortexConnect logo">
+        <span>CortexConnect</span>
+      </div>
+      <h1>Create your workspace</h1>
+      <p>Patients, doctors, and admins get a focused view built around their work.</p>
+    </div>
+  </div>
 
-          <% if (message) { %>
-            <div class="alert alert-info"><%= message %></div>
-          <% } %>
-
-          <% if (!adminSignupCodeConfigured) { %>
-            <div class="alert alert-warning">
-              Admin signup code is not configured in the environment yet.
-            </div>
-          <% } %>
-
-          <form action="/signup" method="POST" id="signupForm">
-            <div class="row g-3 mb-3">
-              <div class="col-md-6">
-                <label class="form-label">First Name</label>
-                <input type="text" name="first_name" class="form-control" value="<%= formData.first_name || '' %>" required>
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">Last Name</label>
-                <input type="text" name="last_name" class="form-control" value="<%= formData.last_name || '' %>" required>
-              </div>
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label">Username</label>
-              <input type="text" name="username" class="form-control" value="<%= formData.username || '' %>" required>
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label">Email</label>
-              <input type="email" name="email" class="form-control" value="<%= formData.email || '' %>" required>
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label">Password</label>
-              <input type="password" name="password" class="form-control" required>
-            </div>
-
-            <div class="mb-4">
-              <label class="form-label">Role</label>
-              <select name="role" class="form-select" data-role-select required>
-                <% authRoleOptions.forEach((option) => { %>
-                  <option value="<%= option.value %>" <%= selectedRole === option.value ? 'selected' : '' %>><%= option.label %></option>
-                <% }) %>
-              </select>
-              <div class="form-text">Choose Patient for a standard signup.</div>
-            </div>
-
-            <div class="border rounded-3 p-3 mb-4 <%= selectedRole === 'admin' ? '' : 'd-none' %>" data-admin-section>
-              <h2 class="h6 text-uppercase text-muted mb-3">Admin Access</h2>
-              <div class="mb-0">
-                <label class="form-label">Admin Code</label>
-                <input type="password" name="admin_code" class="form-control" value="<%= formData.admin_code || '' %>" placeholder="Enter admin secret code" required>
-                <div class="form-text">Required only for admin signups.</div>
-              </div>
-            </div>
-
-            <div class="border rounded-3 p-3 mb-4 <%= selectedRole === 'doctor' ? '' : 'd-none' %>" data-doctor-section>
-              <h2 class="h6 text-uppercase text-muted mb-3">Doctor Details</h2>
-
-              <div class="mb-3">
-                <label class="form-label">Specialization</label>
-                <select name="doctor_specialization" class="form-select" required>
-                  <option value="">Select specialization</option>
-                  <% specializationOptions.forEach((option) => { %>
-                    <option value="<%= option.value %>" <%= (formData.doctor_specialization || '') === option.value ? 'selected' : '' %>><%= option.label %></option>
-                  <% }) %>
-                </select>
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label">Department</label>
-                <input type="text" name="doctor_department" class="form-control" value="<%= formData.doctor_department || '' %>" placeholder="Cardiology / ICU / Orthopedic" required>
-              </div>
-
-              <div class="row g-3 mb-3">
-                <div class="col-md-6">
-                  <label class="form-label">Hospital Start Time</label>
-                  <input type="time" name="hospital_start_time" class="form-control" value="<%= formData.hospital_start_time || '' %>" required>
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Hospital End Time</label>
-                  <input type="time" name="hospital_end_time" class="form-control" value="<%= formData.hospital_end_time || '' %>" required>
-                </div>
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label d-block">Availability Days</label>
-                <div class="row g-2">
-                  <% weekdayOptions.forEach((day) => { %>
-                    <div class="col-6 col-md-4">
-                      <div class="form-check">
-                        <input
-                          class="form-check-input"
-                          type="checkbox"
-                          name="availability_days"
-                          value="<%= day %>"
-                          id="day-<%= day %>"
-                          <%= selectedAvailabilityDays.includes(day) ? 'checked' : '' %>
-                        >
-                        <label class="form-check-label" for="day-<%= day %>"><%= day %></label>
-                      </div>
-                    </div>
-                  <% }) %>
-                </div>
-              </div>
-
-              <div class="mb-0">
-                <label class="form-label">Doctor Details</label>
-                <textarea name="doctor_bio" class="form-control" rows="3" placeholder="Short profile or note"><%= formData.doctor_bio || '' %></textarea>
-                <div class="form-text">This information appears on the doctor profile and dashboard.</div>
-              </div>
-            </div>
-
-            <button type="submit" class="btn btn-success w-100">Submit Signup</button>
-
-            <div class="text-center text-muted my-3">or</div>
-
-            <a href="/auth/google" class="btn btn-outline-danger w-100">Continue with Google</a>
-          </form>
-        </div>
+  <div class="auth-panel">
+    <div class="auth-panel-header">
+      <img src="/assets/logo.png" alt="CortexConnect logo">
+      <div>
+        <h1>Signup</h1>
+        <p>Create a patient, doctor, or admin account.</p>
       </div>
     </div>
+
+    <% if (message) { %>
+      <div class="alert alert-info"><%= message %></div>
+    <% } %>
+
+    <% if (!adminSignupCodeConfigured) { %>
+      <div class="alert alert-warning">
+        Admin signup code is not configured in the environment yet.
+      </div>
+    <% } %>
+
+    <form action="/signup" method="POST" id="signupForm">
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label class="form-label">First Name</label>
+          <input type="text" name="first_name" class="form-control form-control-lg" value="<%= formData.first_name || '' %>" required autocomplete="given-name">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Last Name</label>
+          <input type="text" name="last_name" class="form-control form-control-lg" value="<%= formData.last_name || '' %>" required autocomplete="family-name">
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Username</label>
+        <input type="text" name="username" class="form-control form-control-lg" value="<%= formData.username || '' %>" required autocomplete="username">
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Email</label>
+        <input type="email" name="email" class="form-control form-control-lg" value="<%= formData.email || '' %>" required autocomplete="email">
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Password</label>
+        <input type="password" name="password" class="form-control form-control-lg" required autocomplete="new-password">
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label">Role</label>
+        <select name="role" class="form-select form-select-lg" data-role-select required>
+          <% authRoleOptions.forEach((option) => { %>
+            <option value="<%= option.value %>" <%= selectedRole === option.value ? 'selected' : '' %>><%= option.label %></option>
+          <% }) %>
+        </select>
+        <div class="form-text">Choose Patient for a standard signup.</div>
+      </div>
+
+      <div class="role-detail-panel <%= selectedRole === 'admin' ? '' : 'd-none' %>" data-admin-section>
+        <h2>Admin Access</h2>
+        <div class="mb-0">
+          <label class="form-label">Admin Code</label>
+          <input type="password" name="admin_code" class="form-control" value="<%= formData.admin_code || '' %>" placeholder="Enter admin secret code" required>
+          <div class="form-text">Required only for admin signups.</div>
+        </div>
+      </div>
+
+      <div class="role-detail-panel <%= selectedRole === 'doctor' ? '' : 'd-none' %>" data-doctor-section>
+        <h2>Doctor Details</h2>
+
+        <div class="mb-3">
+          <label class="form-label">Specialization</label>
+          <select name="doctor_specialization" class="form-select" required>
+            <option value="">Select specialization</option>
+            <% specializationOptions.forEach((option) => { %>
+              <option value="<%= option.value %>" <%= (formData.doctor_specialization || '') === option.value ? 'selected' : '' %>><%= option.label %></option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Department</label>
+          <input type="text" name="doctor_department" class="form-control" value="<%= formData.doctor_department || '' %>" placeholder="Cardiology / ICU / Orthopedic" required>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Hospital Start Time</label>
+            <input type="time" name="hospital_start_time" class="form-control" value="<%= formData.hospital_start_time || '' %>" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Hospital End Time</label>
+            <input type="time" name="hospital_end_time" class="form-control" value="<%= formData.hospital_end_time || '' %>" required>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label d-block">Availability Days</label>
+          <div class="row g-2">
+            <% weekdayOptions.forEach((day) => { %>
+              <div class="col-6 col-md-4">
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    name="availability_days"
+                    value="<%= day %>"
+                    id="day-<%= day %>"
+                    <%= selectedAvailabilityDays.includes(day) ? 'checked' : '' %>
+                  >
+                  <label class="form-check-label" for="day-<%= day %>"><%= day %></label>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+        </div>
+
+        <div class="mb-0">
+          <label class="form-label">Doctor Details</label>
+          <textarea name="doctor_bio" class="form-control" rows="3" placeholder="Short profile or note"><%= formData.doctor_bio || '' %></textarea>
+          <div class="form-text">This information appears on the doctor profile and dashboard.</div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-success btn-lg w-100">Create Account</button>
+
+      <div class="auth-divider"><span>or</span></div>
+
+      <a href="/auth/google" class="btn btn-outline-danger btn-lg w-100">Continue with Google</a>
+    </form>
   </div>
 </div>
 
