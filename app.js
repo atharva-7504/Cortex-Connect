@@ -32,9 +32,18 @@ const {
 } = require("./utils/validation");
 
 const app = express();
-const port = process.env.PORT || 3000;
 const isProduction = process.env.NODE_ENV === "production";
 const sessionMaxAgeMs = 1000 * 60 * 60 * 24 * 7;
+
+const getServerPort = () => {
+  const parsedPort = Number.parseInt(String(process.env.PORT || "").trim(), 10);
+  return Number.isInteger(parsedPort) && parsedPort > 0 ? parsedPort : 3000;
+};
+
+const getServerHost = () => {
+  const host = String(process.env.HOST || "").trim();
+  return host || "0.0.0.0";
+};
 
 const getSessionSecret = () => {
   const secret = String(process.env.SESSION_SECRET || "").trim();
@@ -2825,8 +2834,11 @@ async function startServer() {
     await migrateAppointmentReferences();
     await ensureAppointmentSlotIndex();
     console.log("Connected to MongoDB database cortex-connect.");
-    app.listen(port, () => {
-      console.log(`CortexConnect server running on http://localhost:${port}`);
+    const serverPort = getServerPort();
+    const serverHost = getServerHost();
+    const displayHost = serverHost === "0.0.0.0" || serverHost === "::" ? "localhost" : serverHost;
+    app.listen(serverPort, serverHost, () => {
+      console.log(`CortexConnect server running on http://${displayHost}:${serverPort}`);
     });
   } catch (err) {
     console.error("MongoDB connection failed.");
