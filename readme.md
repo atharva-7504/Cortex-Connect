@@ -1,4 +1,4 @@
-<img width="230" height="220" align="left" alt="logo" src="https://github.com/user-attachments/assets/f7610caa-10f5-4790-acf0-b37940fdf9e1" />
+<img width="250" height="230" align="left" alt="logo" src="https://github.com/user-attachments/assets/f7610caa-10f5-4790-acf0-b37940fdf9e1" />
 <div align="center">
  
 ### Cortex-Connect
